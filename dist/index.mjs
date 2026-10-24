@@ -14,24 +14,254 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
+// ../zero_addon_sdk/src/types.ts
+var init_types = __esm({
+  "../zero_addon_sdk/src/types.ts"() {
+    "use strict";
+  }
+});
+
+// ../zero_addon_sdk/src/capabilities.ts
+var init_capabilities = __esm({
+  "../zero_addon_sdk/src/capabilities.ts"() {
+    "use strict";
+  }
+});
+
+// ../zero_addon_sdk/src/responses.ts
+var init_responses = __esm({
+  "../zero_addon_sdk/src/responses.ts"() {
+    "use strict";
+  }
+});
+
+// ../zero_addon_sdk/src/settings.ts
+function uiText(text, locale = "en") {
+  if (text === void 0) return "";
+  if (typeof text === "string") return text;
+  return text[locale] ?? text.en ?? Object.values(text)[0] ?? "";
+}
+var init_settings = __esm({
+  "../zero_addon_sdk/src/settings.ts"() {
+    "use strict";
+  }
+});
+
+// ../zero_addon_sdk/src/ui.ts
+var init_ui = __esm({
+  "../zero_addon_sdk/src/ui.ts"() {
+    "use strict";
+    init_settings();
+  }
+});
+
+// ../zero_addon_sdk/src/storage.ts
+async function migrate(db3, steps) {
+  const row = await db3.get("PRAGMA user_version");
+  const current = row?.user_version ?? 0;
+  for (let v = current + 1; v <= steps.length; v += 1) {
+    await db3.transaction(async () => {
+      await db3.exec(steps[v - 1]);
+      await db3.exec(`PRAGMA user_version = ${v}`);
+    });
+  }
+  return steps.length;
+}
+var init_storage = __esm({
+  "../zero_addon_sdk/src/storage.ts"() {
+    "use strict";
+  }
+});
+
+// ../zero_addon_sdk/src/services.ts
+var init_services = __esm({
+  "../zero_addon_sdk/src/services.ts"() {
+    "use strict";
+  }
+});
+
+// ../zero_addon_sdk/src/spaces.ts
+var init_spaces = __esm({
+  "../zero_addon_sdk/src/spaces.ts"() {
+    "use strict";
+  }
+});
+
+// ../zero_addon_sdk/src/manifest.ts
+var SDK_PROTOCOL_VERSION;
+var init_manifest = __esm({
+  "../zero_addon_sdk/src/manifest.ts"() {
+    "use strict";
+    init_services();
+    init_spaces();
+    init_capabilities();
+    init_settings();
+    init_ui();
+    SDK_PROTOCOL_VERSION = 3;
+  }
+});
+
+// ../zero_addon_sdk/src/host.ts
+var init_host = __esm({
+  "../zero_addon_sdk/src/host.ts"() {
+    "use strict";
+  }
+});
+
+// ../zero_addon_sdk/src/addon.ts
+function defineAddon(def) {
+  return {
+    manifest: def.manifest,
+    async register(host2) {
+      const { resources: resources2 = {}, actions = {}, routes = {}, services = {}, api } = await def.setup(host2);
+      const sdk = def.manifest.zero.sdk ?? Math.min(2, SDK_PROTOCOL_VERSION);
+      return { sdk, manifest: def.manifest, resources: resources2, actions, routes, services, ...api !== void 0 ? { api } : {} };
+    }
+  };
+}
+var init_addon = __esm({
+  "../zero_addon_sdk/src/addon.ts"() {
+    "use strict";
+    init_manifest();
+  }
+});
+
+// ../zero_addon_sdk/src/router.ts
+var init_router = __esm({
+  "../zero_addon_sdk/src/router.ts"() {
+    "use strict";
+    init_responses();
+  }
+});
+
+// ../zero_addon_sdk/src/projection.ts
+function detectProjection(rawTitle, opts = {}) {
+  const t = ` ${rawTitle.toLowerCase().replace(/[._\-]+/g, " ")} `;
+  const has = (re) => re.test(t);
+  let stereo = "mono";
+  if (has(/\bmono\b/)) {
+    stereo = "mono";
+  } else if (has(/\b(tb|ou|htab|hou|3dv|over[- ]?under|top[- ]?bottom)\b/)) {
+    stereo = "tb";
+  } else if (has(/\b(sbs|lr|hsbs|fsbs|3dh|half[- ]?sbs|full[- ]?sbs|side[- ]?by[- ]?side)\b/)) {
+    stereo = "sbs";
+  }
+  if (has(/\bmkx220\b/)) return immersive("mkx220", 220, stereo);
+  if (has(/\bmkx200\b/)) return immersive("mkx200", 200, stereo);
+  if (has(/\bvrca220\b/)) return immersive("vrca220", 220, stereo);
+  if (has(/\brf52\b/)) return immersive("rf52", 190, stereo);
+  if (has(/\bfisheye190\b/) || has(/\bfisheye\b/)) {
+    const fov = has(/\b220\b/) ? 220 : has(/\b200\b/) ? 200 : 190;
+    return immersive("fisheye", fov, stereo);
+  }
+  if (has(/\b360\b/)) return immersive("sphere", 360, stereo);
+  if (has(/\b180\b/) || has(/\b180x180\b/)) return immersive("dome", 180, stereo);
+  if (opts.assumeVrWhenHinted && VR_HINT.test(t)) return immersive("dome", 180, stereo);
+  if (has(/\b(sbs|hsbs|fsbs|half[- ]?sbs|full[- ]?sbs|halfsbs|fullsbs|hou|htab|h[- ]?ou|half[- ]?ou|full[- ]?ou|over[- ]?under|top[- ]?bottom|side[- ]?by[- ]?side|3dh|3dv)\b/)) {
+    const s3d = stereo === "mono" ? "sbs" : stereo;
+    return { is3d: true, isVr: false, stereo: s3d, screenType: "flat", fov: 0 };
+  }
+  return { ...FLAT_2D };
+}
+function immersive(screenType, fov, stereo) {
+  const s = stereo === "mono" ? "sbs" : stereo;
+  return { is3d: true, isVr: true, stereo: s, screenType, fov };
+}
+var FLAT_2D, VR_HINT;
+var init_projection = __esm({
+  "../zero_addon_sdk/src/projection.ts"() {
+    "use strict";
+    FLAT_2D = {
+      is3d: false,
+      isVr: false,
+      stereo: "mono",
+      screenType: "flat",
+      fov: 0
+    };
+    VR_HINT = /\bvr\b|vrporn|czechvr|wankzvr|badoinkvr|vrbangers|vrhush|vrcosplay|vrconk|sexbabesvr|realjamvr|milfvr|18vr|vrallure|vrlatina|tmwvrnet|virtualreal|naughtyamericavr|\bslr\b/;
+  }
+});
+
+// ../zero_addon_sdk/src/conformance.ts
+var init_conformance = __esm({
+  "../zero_addon_sdk/src/conformance.ts"() {
+    "use strict";
+    init_capabilities();
+    init_manifest();
+    init_responses();
+    init_ui();
+  }
+});
+
+// ../zero_addon_sdk/src/index.ts
+var init_src = __esm({
+  "../zero_addon_sdk/src/index.ts"() {
+    "use strict";
+    init_types();
+    init_capabilities();
+    init_responses();
+    init_settings();
+    init_ui();
+    init_storage();
+    init_manifest();
+    init_host();
+    init_addon();
+    init_router();
+    init_services();
+    init_spaces();
+    init_projection();
+    init_conformance();
+  }
+});
+
 // src/host.ts
+var host_exports = {};
+__export(host_exports, {
+  getVaultHost: () => getVaultHost,
+  hasVaultHost: () => hasVaultHost,
+  saveSettings: () => saveSettings,
+  setVaultHost: () => setVaultHost,
+  settings: () => settings
+});
 function setVaultHost(host2) {
   _host = host2;
 }
 function getVaultHost() {
-  if (!_host) {
-    throw new Error("Vault host not configured \u2014 call setVaultHost() before using the adult code");
-  }
+  if (!_host) throw new Error("Vault host not configured \u2014 call setVaultHost() first");
   return _host;
 }
 function hasVaultHost() {
   return _host !== null;
 }
-var _host;
-var init_host = __esm({
+async function settings() {
+  let s = {};
+  if (_host) s = await _host.settings.get().catch(() => ({}));
+  const str = (k) => typeof s[k] === "string" ? s[k].trim() : "";
+  const list = (k) => Array.isArray(s[k]) ? s[k] : [];
+  const types = list("content_types").filter((t) => CONTENT_TYPES.has(t));
+  return {
+    tpdb_token: str("tpdb_token"),
+    content_types: types.length ? types : ["scenes"],
+    cached_only: s.cached_only !== false,
+    zilean_url: str("zilean_url"),
+    torznab_url: str("torznab_url"),
+    torznab_key: str("torznab_key"),
+    torznab_categories: str("torznab_categories"),
+    apijav_enabled: s.apijav_enabled === true,
+    apijav_url: str("apijav_url") || "https://server.apijav.com",
+    apijav_key: str("apijav_key"),
+    home_rails: list("home_rails")
+  };
+}
+async function saveSettings(patch) {
+  await getVaultHost().settings.set(patch);
+}
+var _host, CONTENT_TYPES;
+var init_host2 = __esm({
   "src/host.ts"() {
     "use strict";
     _host = null;
+    CONTENT_TYPES = /* @__PURE__ */ new Set(["scenes", "movies", "jav"]);
   }
 });
 
@@ -40,46 +270,231 @@ var db_exports = {};
 __export(db_exports, {
   adultCatalogHasTpdbId: () => adultCatalogHasTpdbId,
   adultCatalogStats: () => adultCatalogStats,
-  getAddonConfig: () => getAddonConfig,
   getAdultCatalogEntry: () => getAdultCatalogEntry,
-  getLibrary: () => getLibrary,
-  getStreamAccount: () => getStreamAccount,
-  getStreamPreferences: () => getStreamPreferences,
   kvGet: () => kvGet,
   kvSet: () => kvSet,
   listAdultCatalogByTpdbId: () => listAdultCatalogByTpdbId,
   listAdultCatalogForEnrich: () => listAdultCatalogForEnrich,
   listAdultStreamSources: () => listAdultStreamSources,
-  listStreamAccounts: () => listStreamAccounts,
-  parseAdultConfig: () => parseAdultConfig,
+  migrateStorage: () => migrateStorage,
   searchAdultCatalog: () => searchAdultCatalog,
   updateAdultCatalogDuration: () => updateAdultCatalogDuration,
   updateAdultCatalogEnrichment: () => updateAdultCatalogEnrichment,
   upsertAdultCatalog: () => upsertAdultCatalog
 });
-var getAddonConfig, getLibrary, parseAdultConfig, listStreamAccounts, getStreamAccount, getStreamPreferences, listAdultStreamSources, searchAdultCatalog, getAdultCatalogEntry, listAdultCatalogByTpdbId, listAdultCatalogForEnrich, upsertAdultCatalog, updateAdultCatalogEnrichment, updateAdultCatalogDuration, adultCatalogHasTpdbId, adultCatalogStats, kvGet, kvSet;
+function migrateStorage() {
+  const db3 = storage();
+  let done = migrated.get(db3);
+  if (done) return done;
+  done = (async () => {
+    await migrate(db3, [
+      `CREATE TABLE IF NOT EXISTS adult_catalog (
+        info_hash TEXT PRIMARY KEY,
+        raw_title TEXT NOT NULL,
+        parsed_title TEXT,
+        title TEXT,
+        studio TEXT,
+        performers_json TEXT NOT NULL DEFAULT '[]',
+        content_type TEXT,
+        poster_url TEXT,
+        date TEXT,
+        year INTEGER,
+        size_bytes INTEGER,
+        tpdb_id TEXT,
+        tpdb_type TEXT,
+        enriched_at INTEGER,
+        source_term TEXT,
+        duration_seconds INTEGER,
+        added_at INTEGER NOT NULL DEFAULT (unixepoch())
+      );
+      CREATE INDEX IF NOT EXISTS idx_adult_catalog_enrich ON adult_catalog(enriched_at);
+      CREATE INDEX IF NOT EXISTS idx_adult_catalog_tpdb ON adult_catalog(tpdb_id);`
+    ]);
+  })();
+  migrated.set(db3, done);
+  return done;
+}
+async function db() {
+  await migrateStorage();
+  return storage();
+}
+async function upsertAdultCatalog(entries) {
+  if (!entries.length) return 0;
+  const d = await db();
+  let added = 0;
+  for (const e of entries) {
+    const hash = e.infoHash.toLowerCase();
+    if (!hash || !e.rawTitle) continue;
+    const res = await d.run(
+      `INSERT INTO adult_catalog (info_hash, raw_title, parsed_title, studio, size_bytes, year, source_term)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(info_hash) DO NOTHING`,
+      [hash, e.rawTitle, e.parsedTitle ?? null, e.studio ?? null, e.sizeBytes ?? null, e.year ?? null, e.sourceTerm ?? null]
+    );
+    added += res.changes;
+  }
+  return added;
+}
+async function listAdultCatalogForEnrich(limit = 200) {
+  return (await db()).all("SELECT * FROM adult_catalog WHERE enriched_at IS NULL ORDER BY added_at DESC LIMIT ?", [limit]);
+}
+async function updateAdultCatalogEnrichment(infoHash, m) {
+  await (await db()).run(
+    `UPDATE adult_catalog SET
+       title = COALESCE(?, title),
+       studio = COALESCE(?, studio),
+       performers_json = COALESCE(?, performers_json),
+       content_type = COALESCE(?, content_type),
+       poster_url = COALESCE(?, poster_url),
+       date = COALESCE(?, date),
+       year = COALESCE(?, year),
+       tpdb_id = ?,
+       tpdb_type = ?,
+       enriched_at = ?
+     WHERE info_hash = ?`,
+    [
+      m.title ?? null,
+      m.studio ?? null,
+      m.performers ? JSON.stringify(m.performers) : null,
+      m.contentType ?? null,
+      m.posterUrl ?? null,
+      m.date ?? null,
+      m.year ?? null,
+      m.tpdbId ?? null,
+      m.tpdbType ?? null,
+      Math.floor(Date.now() / 1e3),
+      infoHash.toLowerCase()
+    ]
+  );
+}
+async function searchAdultCatalog(query, opts = {}) {
+  const q = query.trim();
+  const where = [];
+  const params = [];
+  if (q) {
+    for (const w of q.split(/\s+/).filter(Boolean).slice(0, 6)) {
+      const like = `%${w.replace(/[%_\\]/g, (c) => "\\" + c)}%`;
+      where.push("(title LIKE ? ESCAPE '\\' OR raw_title LIKE ? ESCAPE '\\' OR studio LIKE ? ESCAPE '\\' OR performers_json LIKE ? ESCAPE '\\')");
+      params.push(like, like, like, like);
+    }
+  }
+  if (opts.matchedOnly !== false) where.push("tpdb_id IS NOT NULL");
+  params.push(opts.limit ?? 120);
+  return (await db()).all(
+    `SELECT * FROM adult_catalog ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+     ORDER BY (tpdb_id IS NOT NULL) DESC, (enriched_at IS NOT NULL) DESC, added_at DESC
+     LIMIT ?`,
+    params
+  );
+}
+async function getAdultCatalogEntry(infoHash) {
+  return (await db()).get("SELECT * FROM adult_catalog WHERE info_hash = ?", [infoHash.toLowerCase()]);
+}
+async function listAdultCatalogByTpdbId(tpdbId, limit = 60) {
+  return (await db()).all(
+    "SELECT * FROM adult_catalog WHERE tpdb_id = ? ORDER BY (size_bytes IS NOT NULL) DESC, size_bytes DESC LIMIT ?",
+    [tpdbId, limit]
+  );
+}
+async function adultCatalogHasTpdbId(tpdbId) {
+  return !!await (await db()).get("SELECT 1 AS n FROM adult_catalog WHERE tpdb_id = ? LIMIT 1", [tpdbId]);
+}
+async function updateAdultCatalogDuration(infoHash, seconds) {
+  await (await db()).run("UPDATE adult_catalog SET duration_seconds = ? WHERE info_hash = ?", [Math.round(seconds), infoHash.toLowerCase()]);
+}
+async function adultCatalogStats() {
+  const row = await (await db()).get(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN tpdb_id IS NOT NULL THEN 1 ELSE 0 END) AS matched,
+            SUM(CASE WHEN enriched_at IS NOT NULL THEN 1 ELSE 0 END) AS enriched
+     FROM adult_catalog`
+  );
+  return { total: row?.total ?? 0, matched: row?.matched ?? 0, enriched: row?.enriched ?? 0 };
+}
+async function kvGet(key, ns = "") {
+  if (!hasVaultHost()) return null;
+  return getVaultHost().cache.get(ns ? `${ns}:${key}` : key);
+}
+async function kvSet(key, ns, value, ttlSeconds = 0) {
+  if (!hasVaultHost()) return;
+  await getVaultHost().cache.set(ns ? `${ns}:${key}` : key, value, ttlSeconds);
+}
+async function listAdultStreamSources() {
+  const s = await settings();
+  const row = (id, type, url, apiKey, config = {}) => ({ id, source_type: type, name: type, url, api_key: apiKey, enabled: 1, priority: 100, config_json: JSON.stringify(config), last_checked_at: null, last_error: null, created_at: 0 });
+  const out = [];
+  if (s.apijav_enabled) out.push(row("apijav", "apijav", s.apijav_url, s.apijav_key || null));
+  if (s.zilean_url) out.push(row("zilean", "zilean", s.zilean_url, null));
+  if (s.torznab_url) {
+    const categories = s.torznab_categories.split(/[\s,]+/).map((c) => Number(c)).filter((n) => Number.isFinite(n) && n > 0);
+    out.push(row("torznab", "torznab", s.torznab_url, s.torznab_key || null, categories.length ? { categories } : {}));
+  }
+  return out;
+}
+var storage, migrated;
 var init_db = __esm({
   "src/db.ts"() {
     "use strict";
-    init_host();
-    getAddonConfig = () => getVaultHost().getAddonConfig();
-    getLibrary = (id) => getVaultHost().getLibrary(id);
-    parseAdultConfig = (row) => getVaultHost().parseAdultConfig(row);
-    listStreamAccounts = (kind) => getVaultHost().listStreamAccounts(kind);
-    getStreamAccount = (id) => getVaultHost().getStreamAccount(id);
-    getStreamPreferences = (userId) => getVaultHost().getStreamPreferences(userId);
-    listAdultStreamSources = () => getVaultHost().listAdultStreamSources();
-    searchAdultCatalog = (q, opts) => getVaultHost().searchAdultCatalog(q, opts);
-    getAdultCatalogEntry = (h) => getVaultHost().getAdultCatalogEntry(h);
-    listAdultCatalogByTpdbId = (id, limit) => getVaultHost().listAdultCatalogByTpdbId(id, limit);
-    listAdultCatalogForEnrich = (limit) => getVaultHost().listAdultCatalogForEnrich(limit);
-    upsertAdultCatalog = (entries) => getVaultHost().upsertAdultCatalog(entries);
-    updateAdultCatalogEnrichment = (h, m) => getVaultHost().updateAdultCatalogEnrichment(h, m);
-    updateAdultCatalogDuration = (h, s) => getVaultHost().updateAdultCatalogDuration(h, s);
-    adultCatalogHasTpdbId = (id) => getVaultHost().adultCatalogHasTpdbId(id);
-    adultCatalogStats = () => getVaultHost().adultCatalogStats();
-    kvGet = (key, ns) => getVaultHost().kvGet(key, ns);
-    kvSet = (key, ns, value, ttl) => getVaultHost().kvSet(key, ns, value, ttl);
+    init_src();
+    init_host2();
+    storage = () => getVaultHost().storage;
+    migrated = /* @__PURE__ */ new WeakMap();
+  }
+});
+
+// src/debrid.ts
+var debrid_exports = {};
+__export(debrid_exports, {
+  DebridClient: () => DebridClient,
+  canUnrestrict: () => canUnrestrict,
+  getDebrid: () => getDebrid,
+  unrestrict: () => unrestrict
+});
+function fromService(r, fallbackName) {
+  if (r.status === "ready") return { url: r.url, name: r.fileName ?? fallbackName };
+  if (r.status === "queued") return { queued: true, state: r.state ?? null, progress: r.progress ?? null, seeds: r.seeds ?? null };
+  return null;
+}
+async function getDebrid(account) {
+  if (!hasVaultHost()) return null;
+  return await getVaultHost().services.available("debrid").catch(() => false) ? new DebridClient(account) : null;
+}
+async function canUnrestrict() {
+  if (!await getDebrid()) return false;
+  const { accounts } = await getVaultHost().services.call("debrid", "accounts", {}).catch(() => ({ accounts: [] }));
+  return accounts.some((a) => a.unrestricts);
+}
+async function unrestrict(link) {
+  return getVaultHost().services.call("debrid", "unrestrict", { link });
+}
+var DebridClient;
+var init_debrid = __esm({
+  "src/debrid.ts"() {
+    "use strict";
+    init_host2();
+    DebridClient = class {
+      constructor(account) {
+        this.account = account;
+      }
+      /** Which candidates (by id) are cached on the debrid now. */
+      async checkAvailability(candidates, _signal) {
+        const byHash = new Map(candidates.filter((c) => c.infoHash).map((c) => [c.infoHash.toLowerCase(), c.id]));
+        const out = /* @__PURE__ */ new Map();
+        for (const id of byHash.values()) out.set(id, false);
+        if (!byHash.size) return out;
+        const { cached } = await getVaultHost().services.call("debrid", "cached", { hashes: [...byHash.keys()], account: this.account });
+        for (const h of cached) {
+          const id = byHash.get(h.toLowerCase());
+          if (id) out.set(id, true);
+        }
+        return out;
+      }
+      /** A playable URL + the file it picked, "queued" when not cached yet, null on failure. */
+      async resolveDetailed(candidate, _signal) {
+        if (!candidate.infoHash) return null;
+        return fromService(await getVaultHost().services.call("debrid", "resolve", { hash: candidate.infoHash, account: this.account }), candidate.rawTitle ?? "");
+      }
+    };
   }
 });
 
@@ -91,7 +506,7 @@ var consoleLogger, logger;
 var init_log = __esm({
   "src/log.ts"() {
     "use strict";
-    init_host();
+    init_host2();
     consoleLogger = {
       info: (c, m) => console.log(`[${c}] ${m}`),
       success: (c, m) => console.log(`[${c}] ${m}`),
@@ -123,7 +538,7 @@ function hasForgeHost() {
   return _host2 !== null;
 }
 var _host2;
-var init_host2 = __esm({
+var init_host3 = __esm({
   "../zero_forge/src/host.ts"() {
     "use strict";
     _host2 = null;
@@ -132,13 +547,74 @@ var init_host2 = __esm({
 
 // ../zero_forge/src/types.ts
 var HDR_FLAG_HDR10, HDR_FLAG_DV, HDR_FLAG_HDR10_PLUS, HDR_FLAG_HLG;
-var init_types = __esm({
+var init_types2 = __esm({
   "../zero_forge/src/types.ts"() {
     "use strict";
     HDR_FLAG_HDR10 = 1;
     HDR_FLAG_DV = 2;
     HDR_FLAG_HDR10_PLUS = 4;
     HDR_FLAG_HLG = 8;
+  }
+});
+
+// ../zero_forge/src/store.ts
+function migrateStorage2() {
+  const db3 = storage2();
+  let done = migrated2.get(db3);
+  if (done) return done;
+  done = (async () => {
+    await migrate(db3, [
+      `CREATE TABLE IF NOT EXISTS sources (
+        id TEXT PRIMARY KEY,
+        source_type TEXT NOT NULL,
+        name TEXT NOT NULL,
+        url TEXT,
+        api_key TEXT,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        priority INTEGER NOT NULL DEFAULT 100,
+        config_json TEXT NOT NULL DEFAULT '{}',
+        last_checked_at INTEGER,
+        last_error TEXT,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+      );
+      CREATE TABLE IF NOT EXISTS accounts (
+        id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        api_key TEXT,
+        host TEXT,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        priority INTEGER NOT NULL DEFAULT 100,
+        config_json TEXT NOT NULL DEFAULT '{}',
+        premium_until INTEGER,
+        last_checked_at INTEGER,
+        last_error TEXT,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+      );`
+    ]);
+  })();
+  migrated2.set(db3, done);
+  return done;
+}
+async function db2() {
+  await migrateStorage2();
+  return storage2();
+}
+async function listStreamSources() {
+  return (await db2()).all("SELECT * FROM sources ORDER BY priority, created_at");
+}
+async function listStreamAccounts(kind) {
+  const d = await db2();
+  return kind ? d.all("SELECT * FROM accounts WHERE kind = ? ORDER BY priority, created_at", [kind]) : d.all("SELECT * FROM accounts ORDER BY kind, priority, created_at");
+}
+var storage2, migrated2;
+var init_store = __esm({
+  "../zero_forge/src/store.ts"() {
+    "use strict";
+    init_src();
+    init_host3();
+    storage2 = () => getForgeHost().storage;
+    migrated2 = /* @__PURE__ */ new WeakMap();
   }
 });
 
@@ -150,7 +626,7 @@ var consoleLogger2, logger2;
 var init_log2 = __esm({
   "../zero_forge/src/log.ts"() {
     "use strict";
-    init_host2();
+    init_host3();
     consoleLogger2 = {
       info: (c, m) => console.log(`[${c}] ${m}`),
       success: (c, m) => console.log(`[${c}] ${m}`),
@@ -167,20 +643,20 @@ var init_log2 = __esm({
 });
 
 // ../zero_forge/src/filter.ts
-function applyFilters(streams2, prefs) {
-  return streams2.filter((s) => matchesPrefs(s, prefs));
+function applyFilters(streams, prefs) {
+  return streams.filter((s) => matchesPrefs(s, prefs));
 }
-function applySeasonEpisodeGate(streams2, query) {
+function applySeasonEpisodeGate(streams, query) {
   if (query.kind === "movie") {
-    return streams2.filter(
+    return streams.filter(
       (s) => s.seasons.length === 0 && s.episodes.length === 0
     );
   }
-  if (query.kind !== "series") return streams2;
+  if (query.kind !== "series") return streams;
   const wantedSeason = query.season;
   const wantedEpisode = query.episode;
-  if (!wantedSeason && !wantedEpisode) return streams2;
-  return streams2.filter((s) => {
+  if (!wantedSeason && !wantedEpisode) return streams;
+  return streams.filter((s) => {
     const hasSeasons = s.seasons.length > 0;
     const hasEpisodes = s.episodes.length > 0;
     if (!hasSeasons && !hasEpisodes) return true;
@@ -224,9 +700,9 @@ function matchesPrefs(stream, prefs) {
   }
   return true;
 }
-function applyAvailabilityFilters(streams2, prefs) {
-  if (!prefs.excludeUncached) return streams2;
-  return streams2.filter((s) => s.cachedOnDebrid || s.assumedCached);
+function applyAvailabilityFilters(streams, prefs) {
+  if (!prefs.excludeUncached) return streams;
+  return streams.filter((s) => s.cachedOnDebrid || s.assumedCached);
 }
 function parseStreamPrefs(row) {
   const safeJson = (s, fallback) => {
@@ -270,7 +746,7 @@ var init_filter = __esm({
 
 // ../zero_forge/node_modules/@viren070/parse-torrent-title/dist/types.js
 var ValueSet;
-var init_types2 = __esm({
+var init_types3 = __esm({
   "../zero_forge/node_modules/@viren070/parse-torrent-title/dist/types.js"() {
     "use strict";
     ValueSet = class {
@@ -670,7 +1146,7 @@ var VALUE_SET_FIELDS;
 var init_parser = __esm({
   "../zero_forge/node_modules/@viren070/parse-torrent-title/dist/parser.js"() {
     "use strict";
-    init_types2();
+    init_types3();
     init_utils();
     VALUE_SET_FIELDS = /* @__PURE__ */ new Set([
       "audio",
@@ -925,7 +1401,7 @@ function toIntRangeTill() {
 var init_transforms = __esm({
   "../zero_forge/node_modules/@viren070/parse-torrent-title/dist/transforms.js"() {
     "use strict";
-    init_types2();
+    init_types3();
     init_utils();
   }
 });
@@ -1064,7 +1540,7 @@ var handlers;
 var init_handlers = __esm({
   "../zero_forge/node_modules/@viren070/parse-torrent-title/dist/handlers.js"() {
     "use strict";
-    init_types2();
+    init_types3();
     init_utils();
     init_transforms();
     init_validators();
@@ -4351,7 +4827,7 @@ var init_parser2 = __esm({
   "../zero_forge/src/parser.ts"() {
     "use strict";
     init_dist();
-    init_types();
+    init_types2();
     ptt = new Parser().addHandlers(handlers);
     SEASON_WORD = "(?:season|\u0441\u0435\u0437\u043E\u043D|temporada|stagione|sezon|saison|staffel)";
     EPISODE_WORD = "(?:episode|episodio|epis\xF3dio|\u0441\u0435\u0440\u0438\u0438|\u0441\u0435\u0440\u0438\u044F|odcinek|folge|\xE9pisode|cap\xEDtulo|capitulo)";
@@ -4613,12 +5089,12 @@ var init_alldebrid = __esm({
         const mag = uploaded?.data?.magnets?.[0];
         if (!mag?.id) return null;
         for (let attempt = 0; attempt < 3; attempt++) {
-          const status = await fetchAuthed(
+          const status2 = await fetchAuthed(
             `${AD_HOST}/magnet/status?id=${mag.id}&apikey=${encodeURIComponent(this.apiKey)}`,
             this.apiKey,
             { headerScheme: "raw", signal }
           );
-          const m = status?.data?.magnets;
+          const m = status2?.data?.magnets;
           if (m?.links?.length) {
             const { pickFileForEpisode: pickFileForEpisode2 } = await Promise.resolve().then(() => (init_base2(), base_exports));
             const pickable = m.links.map((l, i) => ({ id: i, name: l.filename, size: l.size }));
@@ -4674,11 +5150,11 @@ function embedBasicAuth(url, user, pass) {
   return url.replace(/^(https?:\/\/)/i, (m) => `${m}${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`);
 }
 async function sleep2(ms, signal) {
-  await new Promise((resolve2) => {
-    const t = setTimeout(resolve2, ms);
+  await new Promise((resolve) => {
+    const t = setTimeout(resolve, ms);
     signal?.addEventListener("abort", () => {
       clearTimeout(t);
-      resolve2();
+      resolve();
     }, { once: true });
   });
 }
@@ -5191,12 +5667,12 @@ var init_putio = __esm({
         if (!fileId) {
           for (let attempt = 0; attempt < 4 && !fileId; attempt++) {
             await new Promise((r) => setTimeout(r, 2e3));
-            const status = await fetchAuthed(
+            const status2 = await fetchAuthed(
               `${PUTIO_HOST}/transfers/${id}`,
               this.apiKey,
               { signal }
             );
-            fileId = status?.transfer?.file_id;
+            fileId = status2?.transfer?.file_id;
           }
         }
         if (!fileId) return null;
@@ -5362,7 +5838,7 @@ var init_torbox = __esm({
       }
       /**
        * Like {@link resolve} but also returns the NAME of the file we picked. The
-       * adult library uses the name to reject dirty hashlist entries whose cached
+       * debrid service hands the name back so a caller can reject dirty hashlist entries whose cached
        * TorBox content turns out to be unrelated (e.g. a mainstream show) — the
        * torrent's release name matched, but the actual file doesn't.
        *
@@ -5977,7 +6453,7 @@ var init_nntp = __esm({
       }
       read(multiline) {
         if (this.pending) return Promise.reject(new NntpError("command already in flight"));
-        return new Promise((resolve2, reject) => {
+        return new Promise((resolve, reject) => {
           const timeout = this.cfg.timeoutMs ?? DEFAULT_TIMEOUT_MS;
           const timer = setTimeout(() => {
             this.fail(new NntpError(`timed out after ${timeout} ms`));
@@ -5987,7 +6463,7 @@ var init_nntp = __esm({
             multiline,
             resolve: (r) => {
               clearTimeout(timer);
-              resolve2(r);
+              resolve(r);
             },
             reject: (e) => {
               clearTimeout(timer);
@@ -6028,10 +6504,10 @@ var init_nntp = __esm({
       }
       finish(body) {
         const p = this.pending;
-        const status = this.statusLine;
+        const status2 = this.statusLine;
         this.pending = null;
         this.statusLine = null;
-        p.resolve({ ...status, body });
+        p.resolve({ ...status2, body });
       }
       fail(err) {
         this.closed = true;
@@ -6100,14 +6576,14 @@ var init_nntp = __esm({
             throw err;
           }
         }
-        const c = await new Promise((resolve2, reject) => {
+        const c = await new Promise((resolve, reject) => {
           const onAbort = () => {
             this.waiters = this.waiters.filter((w) => w !== waiter);
             reject(new NntpError("aborted"));
           };
           const waiter = (conn) => {
             signal?.removeEventListener("abort", onAbort);
-            resolve2(conn);
+            resolve(conn);
           };
           if (signal?.aborted) return onAbort();
           signal?.addEventListener("abort", onAbort, { once: true });
@@ -6515,8 +6991,8 @@ var init_engine = __esm({
        */
       async screen(rawUrl, signal) {
         const nzbUrl = cleanNzbUrl(rawUrl);
-        const known = await this.verdicts.get(nzbUrl);
-        if (known) return known.ok ? "alive" : "missing";
+        const known2 = await this.verdicts.get(nzbUrl);
+        if (known2) return known2.ok ? "alive" : "missing";
         try {
           const nzb = await this.nzbFor(jobIdFor("video", nzbUrl), nzbUrl, signal);
           const data = nzb.filter((f) => !/\.par2\b|\.(nfo|sfv|srr)\b/i.test(`${f.name} ${f.subject}`));
@@ -6697,11 +7173,11 @@ async function handle(open, req, res) {
   for await (const chunk of file.stream(start, end, ac.signal)) {
     if (ac.signal.aborted) return;
     if (!res.write(chunk)) {
-      await new Promise((resolve2) => {
+      await new Promise((resolve) => {
         const done = () => {
           res.off("drain", done);
           res.off("close", done);
-          resolve2();
+          resolve();
         };
         res.on("drain", done);
         res.on("close", done);
@@ -6750,8 +7226,10 @@ import os from "node:os";
 import path3 from "node:path";
 async function readUsenetSettings(overrides) {
   if (!hasForgeHost()) return null;
-  const cfg = { ...await getForgeHost().getAddonConfig?.() ?? {} };
-  for (const [k, v] of Object.entries(overrides ?? {})) if (v.trim()) cfg[k] = v;
+  const saved = await getForgeHost().settings.get().catch(() => ({}));
+  const cfg = {};
+  for (const [k, v] of Object.entries(saved)) if (v !== void 0 && v !== null) cfg[k] = String(v);
+  for (const [k, v] of Object.entries(overrides ?? {})) if (v !== void 0 && v !== null && String(v).trim()) cfg[k] = String(v);
   const host2 = (cfg.usenet_host ?? "").trim();
   if (!host2) return null;
   const ssl = !/^(0|false|no|off)$/i.test((cfg.usenet_ssl ?? "true").trim());
@@ -6783,7 +7261,7 @@ async function ensureServer(port) {
   shared.server = null;
   if (old) await new Promise((r) => old.server.close(() => r()));
   const srv = createStreamServer((jobId, idx) => shared.open ? shared.open(jobId, idx) : Promise.resolve(null));
-  const ready = new Promise((resolve2, reject) => {
+  const ready = new Promise((resolve, reject) => {
     srv.once("error", (err) => {
       logger2.error("streams", `Usenet stream server could not listen on 127.0.0.1:${port}: ${err.message}`, err);
       if (shared.server?.server === srv) shared.server = null;
@@ -6791,15 +7269,14 @@ async function ensureServer(port) {
     });
     srv.listen(port, "127.0.0.1", () => {
       logger2.info("streams", `Usenet stream server listening on 127.0.0.1:${port}`);
-      resolve2();
+      resolve();
     });
   });
   shared.server = { port, server: srv, ready };
   return ready;
 }
 function jobsDir() {
-  const base2 = hasForgeHost() && getForgeHost().dataDir || path3.join(os.tmpdir(), "zero");
-  return path3.join(base2, "addons", "forge", "usenet");
+  return path3.join(hasForgeHost() && getForgeHost().dataDir || path3.join(os.tmpdir(), "zero-forge"), "usenet");
 }
 function positive(v) {
   const n = Number((v ?? "").trim());
@@ -6809,7 +7286,7 @@ var DEFAULT_STREAM_PORT, g, shared, THIS_MODULE;
 var init_service = __esm({
   "../zero_forge/src/usenet/service.ts"() {
     "use strict";
-    init_host2();
+    init_host3();
     init_log2();
     init_engine();
     init_nntp();
@@ -6967,10 +7444,10 @@ function cmpForKey(key) {
       return () => 0;
   }
 }
-function sortStreams(streams2, prefs) {
-  if (prefs.sortOrder.length === 0) return streams2;
+function sortStreams(streams, prefs) {
+  if (prefs.sortOrder.length === 0) return streams;
   const userCmps = prefs.sortOrder.map(cmpForKey);
-  return [...streams2].sort((a, b) => {
+  return [...streams].sort((a, b) => {
     const aPack = a.seasonPack ? 1 : 0;
     const bPack = b.seasonPack ? 1 : 0;
     if (aPack !== bPack) return aPack - bPack;
@@ -6981,12 +7458,12 @@ function sortStreams(streams2, prefs) {
     return 0;
   });
 }
-function pinReleaseGroup(streams2, preferredGroup, opts) {
-  if (!preferredGroup) return streams2;
+function pinReleaseGroup(streams, preferredGroup, opts) {
+  if (!preferredGroup) return streams;
   const target = preferredGroup.toLowerCase();
   const matches = [];
   const rest = [];
-  for (const s of streams2) {
+  for (const s of streams) {
     if (s.releaseGroup && s.releaseGroup.toLowerCase() === target) {
       matches.push(s);
     } else {
@@ -7085,7 +7562,7 @@ var DEFAULT_HOST, COMET_SERVICE_BY_PROVIDER, CometSource;
 var init_comet = __esm({
   "../zero_forge/src/sources/comet.ts"() {
     "use strict";
-    init_host2();
+    init_store();
     init_base();
     init_parser2();
     DEFAULT_HOST = "https://comet.elfhosted.com";
@@ -7153,7 +7630,7 @@ var init_comet = __esm({
           return base2.replace(/\/+$/, "");
         }
         const host2 = (this.row.url || DEFAULT_HOST).replace(/\/$/, "");
-        const accounts = await getForgeHost().listStreamAccounts("debrid");
+        const accounts = await listStreamAccounts("debrid");
         const debridServices = accounts.filter((a) => a.enabled === 1 && a.api_key && COMET_SERVICE_BY_PROVIDER[a.provider]).map((a) => ({
           service: COMET_SERVICE_BY_PROVIDER[a.provider],
           apiKey: a.api_key ?? ""
@@ -7712,11 +8189,11 @@ var init_sources = __esm({
 });
 
 // ../zero_forge/src/usenet/screen.ts
-async function screenUsenet(streams2, isUsenet) {
-  const queue = streams2.filter((s) => s.nzbId && isUsenet(s));
-  if (!queue.length) return streams2;
+async function screenUsenet(streams, isUsenet) {
+  const queue = streams.filter((s) => s.nzbId && isUsenet(s));
+  if (!queue.length) return streams;
   const svc = await getUsenetEngine().catch(() => null);
-  if (!svc) return streams2;
+  if (!svc) return streams;
   const signal = AbortSignal.timeout(BUDGET_MS);
   const dead = /* @__PURE__ */ new Set();
   let alive = 0;
@@ -7726,8 +8203,8 @@ async function screenUsenet(streams2, isUsenet) {
   const worker = async () => {
     while (next < queue.length && alive < WANT_ALIVE && grabbed < MAX_SCREENED && !signal.aborted) {
       const s = queue[next++];
-      const known = await svc.engine.verdicts.get(s.nzbId);
-      if (!known) grabbed += 1;
+      const known2 = await svc.engine.verdicts.get(s.nzbId);
+      if (!known2) grabbed += 1;
       const r = await svc.engine.screen(s.nzbId, signal);
       screened += 1;
       if (r === "missing") dead.add(s.id);
@@ -7742,7 +8219,7 @@ async function screenUsenet(streams2, isUsenet) {
       `Usenet: screened ${screened} releases (${grabbed} new) \u2192 ${alive} alive, ${dead.size} gone from the provider (dropped) in ${Date.now() - t0} ms`
     );
   }
-  return dead.size ? streams2.filter((s) => !dead.has(s.id)) : streams2;
+  return dead.size ? streams.filter((s) => !dead.has(s.id)) : streams;
 }
 var WANT_ALIVE, MAX_SCREENED, CONCURRENCY, BUDGET_MS;
 var init_screen = __esm({
@@ -8469,7 +8946,7 @@ async function syncNativeStreams(opts) {
     loadAccounts(),
     loadSourceRows()
   ]);
-  const title = await getForgeHost().getMediaItemTitle(itemId) ?? itemId;
+  const title = [query.title, query.season != null ? `S${String(query.season).padStart(2, "0")}E${String(query.episode ?? 0).padStart(2, "0")}` : null, episodeName].filter(Boolean).join(" \xB7 ") || itemId;
   if (sources.length === 0) {
     logger2.warn("streams", `${title} \u2014 no enabled stream sources, skipping search`);
     return [];
@@ -8510,7 +8987,7 @@ async function syncNativeStreams(opts) {
   const screened = usenetResolvers.size ? await screenUsenet(pinned, (s) => !!s.resolverId && usenetResolvers.has(s.resolverId)) : pinned;
   const sourceNameById = new Map(sourceRows.map((r) => [r.id, r.name]));
   const resolverProviderById = new Map(accounts.map((a) => [a.row.id, a.row.provider]));
-  await persist(
+  const rows = toRows(
     itemId,
     screened,
     formatter ?? DEFAULT_FORMATTER_CONFIG,
@@ -8545,7 +9022,7 @@ async function syncNativeStreams(opts) {
     }
     logger2.warn("streams", `${title} \u2014 0 streams (${why}) in ${tookSec}s`);
   }
-  return screened;
+  return rows;
 }
 async function resolveStream(stream, hint) {
   if (!stream.resolverId) {
@@ -8594,12 +9071,12 @@ async function resolveStream(stream, hint) {
   }
 }
 async function loadSources() {
-  const rows = await getForgeHost().listStreamSources();
+  const rows = await listStreamSources();
   const enabled = rows.filter((r) => r.enabled === 1);
   return enabled.map(buildSource).filter((s) => s !== null);
 }
 async function listAccountsWithBuiltin() {
-  const rows = await getForgeHost().listStreamAccounts();
+  const rows = await listStreamAccounts();
   if (rows.some((r) => r.provider === "usenet") || !await readUsenetSettings()) return rows;
   return [...rows, {
     id: BUILTIN_USENET_ACCOUNT_ID,
@@ -8621,7 +9098,7 @@ async function loadAccounts() {
   return rows.filter((r) => r.enabled === 1).map((row) => ({ row, resolver: buildResolver(row) })).filter((x) => x.resolver !== null);
 }
 async function loadSourceRows() {
-  const rows = await getForgeHost().listStreamSources();
+  const rows = await listStreamSources();
   return rows.filter((r) => r.enabled === 1);
 }
 async function searchAll(sources, query) {
@@ -8734,51 +9211,48 @@ async function annotateAvailability(candidates, accounts) {
   if (rejected.size) logger2.info("streams", `Dropped ${annotated.length - kept.length} releases known to be broken`);
   return { resolved: [...direct, ...kept], perDebrid };
 }
-async function persist(itemId, streams2, formatter, sourceNameById, resolverProviderById, episodeName) {
-  await getForgeHost().setNativeStreams(
-    itemId,
-    streams2.map((s, i) => {
-      const addonName = sourceNameById.get(s.sourceId) ?? s.sourceType;
-      const provider = s.resolverId ? resolverProviderById.get(s.resolverId) : null;
-      const debridName = provider ? prettyProvider(provider) : null;
-      const debridTag = provider ? providerTag(provider) : null;
-      const { title, subtitle } = formatStream(s, formatter, {
-        addonName,
-        episodeName,
-        debridName,
-        debridTag
-      });
-      const finalName = title.trim() ? title : s.name;
-      const finalDescription = subtitle.trim() ? subtitle : s.description;
-      return {
-        id: streamRowId(itemId, s),
-        url: s.url || `native://${s.infoHash ?? s.nzbId ?? s.id}`,
-        name: finalName,
-        description: finalDescription,
-        // Clean release name — kept distinct from the formatted name/description
-        // so JIT resolve hands the resolver a sane label (the formatted one has
-        // emoji/newlines that break usenet job submission).
-        rawTitle: s.rawTitle || s.name || null,
-        bingeGroup: s.bingeGroup ?? null,
-        sortIndex: i,
-        sourceId: s.sourceId,
-        resolverId: s.resolverId,
-        infoHash: s.infoHash ?? null,
-        nzbId: s.nzbId ?? null,
-        releaseGroup: s.releaseGroup,
-        resolution: s.resolution,
-        codec: s.codec,
-        hdrFlags: s.hdrFlags,
-        sizeBytes: s.sizeBytes ?? null,
-        seeders: s.seeders ?? null,
-        cachedOnDebrid: s.cachedOnDebrid,
-        languages: s.languages,
-        audioChannels: s.audioChannels,
-        audioCodec: s.audioCodec,
-        sourceTag: s.sourceTag
-      };
-    })
-  );
+function toRows(itemId, streams, formatter, sourceNameById, resolverProviderById, episodeName) {
+  return streams.map((s, i) => {
+    const addonName = sourceNameById.get(s.sourceId) ?? s.sourceType;
+    const provider = s.resolverId ? resolverProviderById.get(s.resolverId) : null;
+    const debridName = provider ? prettyProvider(provider) : null;
+    const debridTag = provider ? providerTag(provider) : null;
+    const { title, subtitle } = formatStream(s, formatter, {
+      addonName,
+      episodeName,
+      debridName,
+      debridTag
+    });
+    const finalName = title.trim() ? title : s.name;
+    const finalDescription = subtitle.trim() ? subtitle : s.description;
+    return {
+      id: streamRowId(itemId, s),
+      url: s.url || `native://${s.infoHash ?? s.nzbId ?? s.id}`,
+      name: finalName,
+      description: finalDescription,
+      // Clean release name — kept distinct from the formatted name/description
+      // so JIT resolve hands the resolver a sane label (the formatted one has
+      // emoji/newlines that break usenet job submission).
+      rawTitle: s.rawTitle || s.name || null,
+      bingeGroup: s.bingeGroup ?? null,
+      sortIndex: i,
+      sourceId: s.sourceId,
+      resolverId: s.resolverId,
+      infoHash: s.infoHash ?? null,
+      nzbId: s.nzbId ?? null,
+      releaseGroup: s.releaseGroup,
+      resolution: s.resolution,
+      codec: s.codec,
+      hdrFlags: s.hdrFlags,
+      sizeBytes: s.sizeBytes ?? null,
+      seeders: s.seeders ?? null,
+      cachedOnDebrid: s.cachedOnDebrid,
+      languages: s.languages,
+      audioChannels: s.audioChannels,
+      audioCodec: s.audioCodec,
+      sourceTag: s.sourceTag
+    };
+  });
 }
 function streamRowId(itemId, s) {
   const key = s.url || s.infoHash || s.nzbId || s.id;
@@ -8788,7 +9262,7 @@ var BUILTIN_USENET_ACCOUNT_ID, DEFAULT_SOURCE_TIMEOUT_MS, DEFAULT_RESOLVE_TIMEOU
 var init_pipeline = __esm({
   "../zero_forge/src/pipeline.ts"() {
     "use strict";
-    init_host2();
+    init_store();
     init_log2();
     init_filter();
     init_parser2();
@@ -8859,11 +9333,11 @@ __export(src_exports, {
   sortStreams: () => sortStreams,
   syncNativeStreams: () => syncNativeStreams
 });
-var init_src = __esm({
+var init_src2 = __esm({
   "../zero_forge/src/index.ts"() {
     "use strict";
-    init_host2();
-    init_types();
+    init_host3();
+    init_types2();
     init_pipeline();
     init_sources();
     init_base();
@@ -8877,184 +9351,30 @@ var init_src = __esm({
   }
 });
 
-// src/ptube.ts
-var ptube_exports = {};
-__export(ptube_exports, {
-  harvestPtube: () => harvestPtube,
-  ptubeCatalogPage: () => ptubeCatalogPage,
-  ptubeStreams: () => ptubeStreams
-});
-async function getJson2(url, signal) {
-  try {
-    const res = await fetch(url, { signal: signal ?? AbortSignal.timeout(15e3) });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-async function ptubeCatalogPage(page, signal) {
-  const skip = Math.max(0, page) * PAGE_SIZE;
-  const path4 = skip > 0 ? `/catalog/movie/tpdb_catalog/skip=${skip}.json` : "/catalog/movie/tpdb_catalog.json";
-  const json = await getJson2(`${PTUBE_BASE}${path4}`, signal);
-  const out = [];
-  for (const m of json?.metas ?? []) {
-    const id = typeof m.id === "string" ? m.id : "";
-    if (!id.startsWith("porndb:")) continue;
-    const links = Array.isArray(m.links) ? m.links : [];
-    out.push({
-      tpdbId: id.slice("porndb:".length),
-      name: typeof m.name === "string" ? m.name : "",
-      posterUrl: typeof m.poster === "string" ? m.poster : null,
-      year: typeof m.year === "number" ? m.year : null,
-      performers: links.filter((l) => l.category === "Cast" && l.name).map((l) => l.name) ?? []
-    });
-  }
-  return out;
-}
-async function ptubeStreams(tpdbId, signal) {
-  const json = await getJson2(
-    `${PTUBE_BASE}/stream/movie/porndb:${encodeURIComponent(tpdbId)}.json`,
-    signal
-  );
-  const out = [];
-  for (const s of json?.streams ?? []) {
-    const infoHash = typeof s.infoHash === "string" ? s.infoHash.toLowerCase() : "";
-    const title = typeof s.title === "string" ? s.title : "";
-    if (!infoHash || !title) continue;
-    const lines = title.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    const releaseName = lines[lines.length - 1] ?? "";
-    const size = /([\d.]+)\s*(GB|MB)/i.exec(lines[0] ?? "");
-    const sizeBytes = size ? Math.round(parseFloat(size[1]) * (size[2].toUpperCase() === "GB" ? 1024 ** 3 : 1024 ** 2)) : null;
-    if (releaseName) out.push({ infoHash, releaseName, sizeBytes });
-  }
-  return out.sort((a, b) => (b.sizeBytes ?? 0) - (a.sizeBytes ?? 0));
-}
-function parseReleaseName2(name) {
-  const m = /^(.+?)\.(\d{2})\.(\d{2})\.(\d{2})\./.exec(name);
-  if (!m) return { studio: null, date: null };
-  return {
-    studio: m[1].replace(/\./g, " ").trim() || null,
-    date: `20${m[2]}-${m[3]}-${m[4]}`
-  };
-}
-async function harvestPtube(opts = {}) {
-  const pages = opts.pages ?? 5;
-  let added = 0;
-  for (let page = 0; page < pages; page++) {
-    if (opts.signal?.aborted) break;
-    const metas = await ptubeCatalogPage(page, opts.signal);
-    if (!metas.length) break;
-    for (const meta2 of metas) {
-      if (opts.signal?.aborted) break;
-      if (!meta2.tpdbId || !meta2.name) continue;
-      if (await adultCatalogHasTpdbId(meta2.tpdbId)) continue;
-      const streams2 = await ptubeStreams(meta2.tpdbId, opts.signal);
-      await new Promise((r) => setTimeout(r, STREAM_FETCH_GAP_MS));
-      const best = streams2[0];
-      if (!best) continue;
-      const { studio, date } = parseReleaseName2(best.releaseName);
-      const inserted = await upsertAdultCatalog([{
-        infoHash: best.infoHash,
-        rawTitle: best.releaseName,
-        parsedTitle: meta2.name,
-        studio,
-        sizeBytes: best.sizeBytes,
-        year: meta2.year,
-        sourceTerm: "ptube"
-      }]);
-      if (!inserted) continue;
-      await updateAdultCatalogEnrichment(best.infoHash, {
-        title: meta2.name,
-        studio,
-        performers: meta2.performers,
-        contentType: "scene",
-        posterUrl: meta2.posterUrl,
-        date,
-        year: meta2.year ?? (date ? parseInt(date.slice(0, 4), 10) : null),
-        tpdbId: meta2.tpdbId,
-        tpdbType: "scenes"
-      });
-      added++;
-    }
-  }
-  if (added > 0) logger.info("adult", `catalog: +${added} fully-enriched releases from ptube`);
-  return added;
-}
-var PTUBE_BASE, PAGE_SIZE, STREAM_FETCH_GAP_MS;
-var init_ptube = __esm({
-  "src/ptube.ts"() {
-    "use strict";
-    init_db();
-    init_log();
-    PTUBE_BASE = "https://ptube.ers.pw";
-    PAGE_SIZE = 36;
-    STREAM_FETCH_GAP_MS = 250;
-  }
-});
-
-// ../zero_addon_sdk/src/manifest.ts
-var SDK_PROTOCOL_VERSION = 2;
-
-// ../zero_addon_sdk/src/addon.ts
-function defineAddon(def) {
-  return {
-    manifest: def.manifest,
-    async register(host2) {
-      const { resources: resources2 = {}, api } = await def.setup(host2);
-      return { sdk: SDK_PROTOCOL_VERSION, manifest: def.manifest, resources: resources2, api };
-    }
-  };
-}
-
 // src/plugin.ts
-init_host();
+init_src();
 
 // src/catalog.ts
-var catalog_exports = {};
-__export(catalog_exports, {
-  RAIL_IDS: () => RAIL_IDS,
-  SEED_STUDIOS: () => SEED_STUDIOS,
-  VR_STUDIOS: () => VR_STUDIOS,
-  adultListCatalogStreams: () => adultListCatalogStreams,
-  adultResolveCatalog: () => adultResolveCatalog,
-  browseVr: () => browseVr,
-  catalogRail: () => catalogRail,
-  enrichCatalogBatch: () => enrichCatalogBatch,
-  harvestCatalog: () => harvestCatalog,
-  isCatalogRail: () => isCatalogRail,
-  liveHarvest: () => liveHarvest,
-  refreshCatalogRails: () => refreshCatalogRails,
-  searchCatalog: () => searchCatalog
-});
 init_db();
+init_debrid();
+init_host2();
 init_log();
 
 // src/scanner.ts
-init_host();
-var probeFile = (filePath, httpHeaders) => getVaultHost().probeFile(filePath, httpHeaders);
-var parseProbeInfo = (probe) => getVaultHost().parseProbeInfo(probe);
-
-// src/catalog.ts
-init_src();
+init_host2();
+async function probeMedia(target) {
+  if (!hasVaultHost()) return null;
+  return getVaultHost().services.probe(target).catch(() => null);
+}
 
 // src/search.ts
-var search_exports = {};
-__export(search_exports, {
-  adultCachedOnly: () => adultCachedOnly,
-  adultListStreams: () => adultListStreams,
-  adultResolveItem: () => adultResolveItem,
-  adultSearch: () => adultSearch,
-  compareReleaseDate: () => compareReleaseDate,
-  fileNameMatchesMeta: () => fileNameMatchesMeta,
-  isRelevant: () => isRelevant
-});
 init_db();
+init_debrid();
+init_host2();
 init_log();
-init_src();
 
 // src/parse.ts
-init_src();
+init_src2();
 function parseResolutionLabel(rawTitle) {
   const r = parseReleaseName(rawTitle).resolution;
   return r && r !== "unknown" ? r : null;
@@ -9072,71 +9392,6 @@ function detectVr(rawTitle) {
   if (!rawTitle) return false;
   const t = `${rawTitle} ${rawTitle.replace(/[._-]+/g, " ")}`;
   return VR_TOKEN.test(t) || VR_STUDIO_SUFFIX.test(t) || VR_STUDIO_NAME.test(t) || VR_PROJECTION.test(t);
-}
-
-// src/playback.ts
-var playback_exports = {};
-__export(playback_exports, {
-  createAdultPlaySession: () => createAdultPlaySession,
-  getAdultPlaySession: () => getAdultPlaySession,
-  isAdultItemId: () => isAdultItemId,
-  probeAdultStream: () => probeAdultStream
-});
-init_db();
-init_log();
-var NS = "adultplay";
-var TTL_SECONDS = 6 * 60 * 60;
-var PREFIX = "adult~";
-function isAdultItemId(itemId) {
-  return typeof itemId === "string" && itemId.startsWith(PREFIX);
-}
-function randomToken() {
-  return Array.from(
-    { length: 24 },
-    () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]
-  ).join("");
-}
-async function createAdultPlaySession(session) {
-  const token = randomToken();
-  await kvSet(token, NS, JSON.stringify(session), TTL_SECONDS);
-  return `${PREFIX}${token}`;
-}
-async function probeAdultStream(url, timeoutMs = 12e3) {
-  try {
-    const probe = await Promise.race([
-      probeFile(url),
-      new Promise((resolve2) => setTimeout(() => resolve2(null), timeoutMs))
-    ]);
-    if (!probe) return null;
-    const info = parseProbeInfo(probe);
-    const hasVideo = !!info.videoCodec && (info.width ?? 0) > 0;
-    const streamInfo = {
-      container: info.container,
-      videoCodec: info.videoCodec,
-      audioCodec: info.audioCodec,
-      resolution: info.width && info.height ? `${info.width}x${info.height}` : null,
-      bitrate: info.bitrate,
-      videoFrameRate: info.framerate ?? null,
-      audioChannels: info.audioChannels
-    };
-    return { durationSeconds: info.runtimeSeconds || 0, streamInfo, hasVideo };
-  } catch (e) {
-    logger.warn("adult", `probe failed: ${e?.message ?? e}`);
-    return null;
-  }
-}
-async function getAdultPlaySession(itemId) {
-  if (!isAdultItemId(itemId)) return null;
-  const token = itemId.slice(PREFIX.length);
-  const raw = await kvGet(token, NS);
-  if (!raw) return null;
-  try {
-    const s = JSON.parse(raw);
-    if (typeof s?.url !== "string" || !s.url) return null;
-    return s;
-  } catch {
-    return null;
-  }
 }
 
 // src/tpdb.ts
@@ -9205,24 +9460,10 @@ function normalize(raw, contentType) {
     tags
   };
 }
-function normalizePerformer(raw) {
-  if (!raw || typeof raw !== "object") return null;
-  const uuid = pickString(raw.uuid, raw._id, raw.id != null ? String(raw.id) : void 0);
-  const name = pickString(raw.name, raw.title);
-  if (!uuid || !name) return null;
-  const extras = raw.extras && typeof raw.extras === "object" ? raw.extras : null;
-  const details = pickString(extras?.nationality, extras?.gender, raw.bio?.slice?.(0, 80));
-  return {
-    uuid,
-    name,
-    imageUrl: pickImage(raw.image, raw.posters, raw.poster, raw.face, raw.thumbnail),
-    details
-  };
-}
 var TpdbRequestError = class extends Error {
-  constructor(status, url) {
-    super(`TPDB request failed (${status || "network"}): ${url.split("?")[0]}`);
-    this.status = status;
+  constructor(status2, url) {
+    super(`TPDB request failed (${status2 || "network"}): ${url.split("?")[0]}`);
+    this.status = status2;
   }
 };
 async function getJson(url, token, signal) {
@@ -9252,27 +9493,6 @@ async function getJsonStrict(url, token, signal) {
     throw new TpdbRequestError(res.status, url);
   }
 }
-async function tpdbSearchText(query, opts) {
-  if (!opts.token || !query.trim()) return [];
-  const params = new URLSearchParams({ q: query.trim() });
-  if (opts.page && opts.page > 1) params.set("page", String(opts.page));
-  const json = await getJson(
-    `${TPDB_API}/${opts.contentType}?${params.toString()}`,
-    opts.token,
-    opts.signal
-  );
-  const data = json?.data;
-  if (!Array.isArray(data)) return [];
-  return data.map((d) => normalize(d, opts.contentType)).filter((r) => r !== null);
-}
-async function tpdbSearchPerformers(query, opts) {
-  if (!opts.token || !query.trim()) return [];
-  const params = new URLSearchParams({ q: query.trim() });
-  const json = await getJson(`${TPDB_API}/performers?${params.toString()}`, opts.token, opts.signal);
-  const data = json?.data;
-  if (!Array.isArray(data)) return [];
-  return data.map(normalizePerformer).filter((p) => p !== null);
-}
 async function tpdbSearch(rawName, opts) {
   if (!opts.token || !rawName.trim()) return [];
   const contentType = opts.contentType ?? "scenes";
@@ -9295,12 +9515,6 @@ async function tpdbGetById(uuid, opts) {
   const json = await getJson(`${TPDB_API}/${contentType}/${encodeURIComponent(uuid)}`, opts.token, opts.signal);
   const data = json?.data;
   return data ? normalize(data, contentType) : null;
-}
-async function tpdbGetPerformer(uuid, opts) {
-  if (!opts.token || !uuid) return null;
-  const json = await getJson(`${TPDB_API}/performers/${encodeURIComponent(uuid)}`, opts.token, opts.signal);
-  const data = json?.data;
-  return data ? normalizePerformer(data) : null;
 }
 
 // src/knaben.ts
@@ -9441,21 +9655,10 @@ async function zileanFiltered(baseUrl, query, opts = {}) {
 var JAV_CODE = /\b([A-Z]{2,6})-?(\d{2,5})\b/;
 async function adultCachedOnly() {
   try {
-    const { getAddonConfig: getAddonConfig2, getStreamPreferences: getStreamPreferences2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    const cfg = await getAddonConfig2();
-    if (cfg.adult_cached_override === "1") {
-      return cfg.adult_cached_only === "1";
-    }
-    const { DEFAULT_USER_ID: DEFAULT_USER_ID2 } = await Promise.resolve().then(() => (init_src(), src_exports));
-    const prefs = await getStreamPreferences2(DEFAULT_USER_ID2);
-    return prefs.exclude_uncached === 1;
+    return (await settings()).cached_only;
   } catch {
     return false;
   }
-}
-function debridAccountId(sources) {
-  for (const s of sources ?? []) if (s.startsWith("debrid:")) return s.slice("debrid:".length);
-  return null;
 }
 function alnum(s) {
   return s.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -9486,153 +9689,75 @@ function compareReleaseDate(metaDate, releaseName) {
   const rel = releaseDay(releaseName);
   const m = metaDate ? /^(\d{4})-(\d{2})-(\d{2})/.exec(metaDate) : null;
   if (rel == null || !m) return "unknown";
-  const meta2 = Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 864e5);
-  return Math.abs(meta2 - rel) <= 1 ? "match" : "mismatch";
+  const meta = Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 864e5);
+  return Math.abs(meta - rel) <= 1 ? "match" : "mismatch";
 }
-function isRelevant(meta2, t) {
+function isRelevant(meta, t) {
   const hay = t.rawTitle;
-  if (meta2.contentType === "jav") {
-    const m = JAV_CODE.exec(meta2.title);
+  if (meta.contentType === "jav") {
+    const m = JAV_CODE.exec(meta.title);
     if (!m) return false;
     const code = alnum(`${m[1]}${m[2]}`);
     return alnum(hay).includes(code);
   }
   if (!t.adult && MAINSTREAM_FINGERPRINT.test(hay)) return false;
   const hayWords = new Set(words(hay));
-  const studioHit = !!(meta2.studio && words(meta2.studio).some((w) => hayWords.has(w)));
-  const performerHit = meta2.performers.some((p) => words(p).some((w) => hayWords.has(w)));
-  if (meta2.contentType === "scenes") {
-    const dateCmp = compareReleaseDate(meta2.date, hay);
+  const studioHit = !!(meta.studio && words(meta.studio).some((w) => hayWords.has(w)));
+  const performerHit = meta.performers.some((p) => words(p).some((w) => hayWords.has(w)));
+  if (meta.contentType === "scenes") {
+    const dateCmp = compareReleaseDate(meta.date, hay);
     if (dateCmp === "mismatch") return false;
     if (dateCmp === "match" && studioHit) return true;
   }
-  if (meta2.contentType === "movies") {
-    const titleWords = words(meta2.title);
-    const coverage = titleWords.length ? titleWords.filter((w) => hayWords.has(w)).length / titleWords.length : alnum(hay).includes(alnum(meta2.title)) ? 1 : 0;
+  if (meta.contentType === "movies") {
+    const titleWords = words(meta.title);
+    const coverage = titleWords.length ? titleWords.filter((w) => hayWords.has(w)).length / titleWords.length : alnum(hay).includes(alnum(meta.title)) ? 1 : 0;
     if (coverage < 0.6) return false;
     return t.adult || studioHit;
   }
-  if (!meta2.performers.length) return t.adult && studioHit;
+  if (!meta.performers.length) return t.adult && studioHit;
   return performerHit && (t.adult || studioHit);
 }
 var TV_EPISODE_MARKER = /\bS\d{1,2}[\s._-]?E\d{1,3}\b|\b\d{1,2}x\d{2}\b|\b(?:season|episode)[\s._-]?\d{1,3}\b|\bcomplete[\s._-](?:series|season)\b/i;
-function fileNameMatchesMeta(meta2, fileName) {
+function fileNameMatchesMeta(meta, fileName) {
   if (!fileName.trim()) return true;
   const hayWords = new Set(words(fileName));
-  const studioHit = !!(meta2.studio && words(meta2.studio).some((w) => hayWords.has(w)));
-  const performerHit = meta2.performers.some((p) => words(p).some((w) => hayWords.has(w)));
-  if (meta2.contentType === "jav") {
-    const m = JAV_CODE.exec(meta2.title);
+  const studioHit = !!(meta.studio && words(meta.studio).some((w) => hayWords.has(w)));
+  const performerHit = meta.performers.some((p) => words(p).some((w) => hayWords.has(w)));
+  if (meta.contentType === "jav") {
+    const m = JAV_CODE.exec(meta.title);
     if (m && alnum(fileName).includes(alnum(`${m[1]}${m[2]}`))) return true;
   } else {
-    const titleWords = words(meta2.title);
+    const titleWords = words(meta.title);
     const titleHit = titleWords.length > 0 && titleWords.filter((w) => hayWords.has(w)).length / titleWords.length >= 0.5;
     if (performerHit || studioHit || titleHit) return true;
   }
   return !TV_EPISODE_MARKER.test(fileName);
 }
-function yearOf(meta2) {
-  return meta2.date ? parseInt(meta2.date.slice(0, 4), 10) || null : null;
-}
-function toCard(meta2) {
-  return {
-    id: `tpdb:${meta2.contentType}:${meta2.uuid}`,
-    kind: meta2.contentType === "movies" ? "movie" : meta2.contentType === "jav" ? "jav" : "scene",
-    contentType: meta2.contentType,
-    uuid: meta2.uuid,
-    title: meta2.title,
-    // Scene cards are landscape: the still, not TPDB's portrait crop of it.
-    posterUrl: meta2.contentType === "scenes" ? meta2.backgroundUrl ?? landscapeImage(meta2.posterUrl) : meta2.posterUrl,
-    backgroundUrl: meta2.backgroundUrl,
-    date: meta2.date,
-    year: yearOf(meta2),
-    performers: meta2.performers,
-    studio: meta2.studio,
-    description: meta2.description,
-    rating: meta2.rating,
-    durationSeconds: meta2.durationSeconds
-  };
-}
-async function adultSearch(library, query, opts = {}) {
-  const { types, signal } = opts;
-  const cfg = parseAdultConfig(library);
-  const appCfg = await getAddonConfig();
-  const token = appCfg.theporndb_api_key || cfg.tpdbToken;
-  if (!token || !query.trim()) return [];
-  const contentTypes = types?.length ? types : cfg.contentTypes?.length ? cfg.contentTypes : ["scenes", "movies", "jav"];
-  const [perTypeLists, performers] = await Promise.all([
-    Promise.all(
-      contentTypes.map(async (ct) => {
-        const [p1, p2] = await Promise.all([
-          tpdbSearchText(query, { token, contentType: ct, signal }),
-          tpdbSearchText(query, { token, contentType: ct, page: 2, signal })
-        ]);
-        return [...p1, ...p2];
-      })
-    ),
-    tpdbSearchPerformers(query, { token, signal })
-  ]);
-  const cards = [];
-  for (const p of performers.slice(0, 8)) {
-    cards.push({
-      id: `performer:${p.uuid}`,
-      kind: "performer",
-      contentType: null,
-      uuid: p.uuid,
-      title: p.name,
-      posterUrl: p.imageUrl,
-      backgroundUrl: null,
-      date: null,
-      year: null,
-      performers: [],
-      studio: null,
-      description: p.details,
-      rating: null,
-      durationSeconds: null
-    });
-  }
-  const seen = /* @__PURE__ */ new Set();
-  let idx = 0;
-  let added = true;
-  while (added) {
-    added = false;
-    for (const list of perTypeLists) {
-      const meta2 = list[idx];
-      if (!meta2) continue;
-      added = true;
-      const card = toCard(meta2);
-      if (seen.has(card.id)) continue;
-      seen.add(card.id);
-      cards.push(card);
-    }
-    idx++;
-  }
-  return cards;
-}
-function buildResolveQueries(meta2) {
+function buildResolveQueries(meta) {
   const out = [];
   const push2 = (q) => {
     const v = (q ?? "").replace(/\s{2,}/g, " ").trim();
     if (v && !out.some((e) => e.toLowerCase() === v.toLowerCase())) out.push(v);
   };
-  if (meta2.contentType === "jav") {
-    const code = meta2.title.match(JAV_CODE)?.[0];
+  if (meta.contentType === "jav") {
+    const code = meta.title.match(JAV_CODE)?.[0];
     push2(code);
-    push2(meta2.title);
-  } else if (meta2.contentType === "movies") {
-    push2(meta2.title);
-    if (meta2.studio) push2(`${meta2.title} ${meta2.studio}`);
+    push2(meta.title);
+  } else if (meta.contentType === "movies") {
+    push2(meta.title);
+    if (meta.studio) push2(`${meta.title} ${meta.studio}`);
   } else {
-    const p0 = meta2.performers[0];
-    const p1 = meta2.performers[1];
-    if (meta2.studio && p0) push2(`${meta2.studio} ${p0}`);
+    const p0 = meta.performers[0];
+    const p1 = meta.performers[1];
+    if (meta.studio && p0) push2(`${meta.studio} ${p0}`);
     if (p0 && p1) push2(`${p0} ${p1}`);
-    push2(meta2.title);
-    if (p0) push2(`${p0} ${meta2.title}`);
+    push2(meta.title);
+    if (p0) push2(`${p0} ${meta.title}`);
   }
   return out.slice(0, 4);
 }
-async function searchAdultBackends(sources, fallbackZileanUrl, query, signal) {
+async function searchAdultBackends(sources, query, signal) {
   const out = [];
   const seen = /* @__PURE__ */ new Set();
   const push2 = (infoHash, rawTitle, sizeBytes, adult) => {
@@ -9642,7 +9767,6 @@ async function searchAdultBackends(sources, fallbackZileanUrl, query, signal) {
     out.push({ infoHash: h, rawTitle, sizeBytes, adult });
   };
   const zileanUrls2 = sources.filter((s) => s.source_type === "zilean" && s.url).map((s) => s.url);
-  if (!zileanUrls2.length && fallbackZileanUrl) zileanUrls2.push(fallbackZileanUrl);
   for (const url of zileanUrls2) {
     const z = await zileanSearch(url, query, { signal, limit: 80 });
     for (const t of z) push2(t.infoHash, t.rawTitle, t.sizeBytes, t.adult);
@@ -9652,7 +9776,7 @@ async function searchAdultBackends(sources, fallbackZileanUrl, query, signal) {
   }
   const torznab = sources.filter((s) => s.source_type === "torznab" && s.url);
   if (torznab.length) {
-    const { TorznabSource: TorznabSource2 } = await Promise.resolve().then(() => (init_src(), src_exports));
+    const { TorznabSource: TorznabSource2 } = await Promise.resolve().then(() => (init_src2(), src_exports));
     for (const s of torznab) {
       try {
         const cands = await new TorznabSource2(s).search({ kind: "movie", title: query }, signal);
@@ -9662,18 +9786,6 @@ async function searchAdultBackends(sources, fallbackZileanUrl, query, signal) {
     }
   }
   return out;
-}
-async function pickTorBox(cfg, signal) {
-  void signal;
-  let accId = debridAccountId(cfg.sources);
-  let account = (accId ? await getStreamAccount(accId) : null) ?? null;
-  if (!account || account.provider !== "torbox") {
-    const debrids = await listStreamAccounts("debrid");
-    account = debrids.find((a) => a.provider === "torbox" && a.enabled === 1) ?? null;
-    accId = account?.id ?? null;
-  }
-  if (!account || account.provider !== "torbox" || !accId) return null;
-  return { resolver: new TorBoxResolver(account), accId };
 }
 function toStreamCandidate(t, accId) {
   return {
@@ -9687,54 +9799,53 @@ function toStreamCandidate(t, accId) {
     sizeBytes: t.sizeBytes ?? void 0
   };
 }
-async function adultResolveContext(library, itemId, signal) {
+async function adultResolveContext(itemId, signal) {
   const m = /^tpdb:(scenes|movies|jav):(.+)$/.exec(itemId);
   if (!m) return null;
   const contentType = m[1];
   const uuid = m[2];
-  const cfg = parseAdultConfig(library);
-  const appCfg = await getAddonConfig();
-  const token = appCfg.theporndb_api_key || cfg.tpdbToken;
+  const cfg = await settings();
+  const token = cfg.tpdb_token;
   if (!token) {
     logger.warn("adult", "resolve skipped: no ThePornDB token configured");
     return null;
   }
   const adultSources = await listAdultStreamSources();
-  const meta2 = await tpdbGetById(uuid, { token, contentType, signal });
-  if (!meta2) {
+  const meta = await tpdbGetById(uuid, { token, contentType, signal });
+  if (!meta) {
     logger.warn("adult", `resolve skipped: ThePornDB had no record for ${itemId}`);
     return null;
   }
-  const torbox = await pickTorBox(cfg, signal);
-  if (!torbox) {
-    logger.warn("adult", `${meta2.title} \u2014 resolve skipped: no enabled TorBox debrid found`);
+  const resolver = await getDebrid();
+  if (!resolver) {
+    logger.warn("adult", `${meta.title} \u2014 resolve skipped: no add-on provides debrid`);
     return null;
   }
-  return { meta: meta2, adultSources, cfg, resolver: torbox.resolver, accId: torbox.accId };
+  return { meta, adultSources, cfg, resolver, accId: "debrid" };
 }
 async function gatherCandidates(ctx, signal) {
-  const { meta: meta2, adultSources, cfg, resolver, accId } = ctx;
-  const queries = buildResolveQueries(meta2);
+  const { meta, adultSources, cfg, resolver, accId } = ctx;
+  const queries = buildResolveQueries(meta);
   const relevant = /* @__PURE__ */ new Map();
   for (const q of queries) {
-    const torrents = await searchAdultBackends(adultSources, cfg.zileanUrl, q, signal);
+    const torrents = await searchAdultBackends(adultSources, q, signal);
     for (const t of torrents) {
-      if (!relevant.has(t.infoHash) && isRelevant(meta2, t)) relevant.set(t.infoHash, t);
+      if (!relevant.has(t.infoHash) && isRelevant(meta, t)) relevant.set(t.infoHash, t);
     }
     if (relevant.size >= 40) break;
   }
   let pool = [...relevant.values()].slice(0, 60).sort((a, b) => (b.sizeBytes ?? 0) - (a.sizeBytes ?? 0));
   if (!pool.length) {
-    logger.warn("adult", `${meta2.title} \u2014 0 relevant torrents from ${queries.length} quer${queries.length === 1 ? "y" : "ies"} [${queries.join(" | ")}]`);
+    logger.warn("adult", `${meta.title} \u2014 0 relevant torrents from ${queries.length} quer${queries.length === 1 ? "y" : "ies"} [${queries.join(" | ")}]`);
     return [];
   }
   if (await adultCachedOnly()) {
     const map = await resolver.checkAvailability(pool.map((t) => toStreamCandidate(t, accId)), signal);
     pool = pool.filter((t) => map.get(t.infoHash) === true);
-    logger[pool.length ? "info" : "warn"]("adult", `${meta2.title} \u2014 ${pool.length} cached (cached-only mode)`);
+    logger[pool.length ? "info" : "warn"]("adult", `${meta.title} \u2014 ${pool.length} cached (cached-only mode)`);
     if (!pool.length) return [];
   } else {
-    logger.info("adult", `${meta2.title} \u2014 ${pool.length} relevant release(s)`);
+    logger.info("adult", `${meta.title} \u2014 ${pool.length} relevant release(s)`);
   }
   return pool.map((t) => ({
     infoHash: t.infoHash,
@@ -9744,115 +9855,54 @@ async function gatherCandidates(ctx, signal) {
     isVr: detectVrRelease(t.rawTitle, t.sizeBytes)
   }));
 }
-async function adultListStreams(library, itemId, signal) {
-  const ctx = await adultResolveContext(library, itemId, signal);
+async function adultListStreams(itemId, signal) {
+  const ctx = await adultResolveContext(itemId, signal);
   if (!ctx) return [];
   return gatherCandidates(ctx, signal);
 }
-async function adultResolveItem(library, itemId, signal, opts) {
-  const ctx = await adultResolveContext(library, itemId, signal);
+async function adultResolveItem(itemId, signal, opts) {
+  const ctx = await adultResolveContext(itemId, signal);
   if (!ctx) return null;
-  const { meta: meta2, resolver, accId } = ctx;
-  const order = opts?.hash ? [{ infoHash: opts.hash.toLowerCase(), rawTitle: meta2.title, sizeBytes: null }] : await gatherCandidates(ctx, signal);
+  const { meta, resolver, accId } = ctx;
+  const order = opts?.hash ? [{ infoHash: opts.hash.toLowerCase(), rawTitle: meta.title, sizeBytes: null }] : await gatherCandidates(ctx, signal);
   if (!order.length) return null;
   let queued = null;
   for (const opt of order.slice(0, 5)) {
     const ref = opt.infoHash.slice(0, 8);
     const detailed = await resolver.resolveDetailed(toStreamCandidate(opt, accId), signal);
     if (detailed && "queued" in detailed) {
-      logger.info("adult", `${meta2.title} \u2014 ${ref} queued on TorBox (${detailed.state ?? "?"} ${detailed.progress ?? 0}%, ${detailed.seeds ?? "?"} seeds)`);
-      queued ??= { queued: true, title: meta2.title, state: detailed.state, progress: detailed.progress };
+      logger.info("adult", `${meta.title} \u2014 ${ref} queued on TorBox (${detailed.state ?? "?"} ${detailed.progress ?? 0}%, ${detailed.seeds ?? "?"} seeds)`);
+      queued ??= { queued: true, title: meta.title, state: detailed.state, progress: detailed.progress };
       continue;
     }
     if (!detailed?.url) {
-      logger.warn("adult", `${meta2.title} \u2014 TorBox returned no URL for ${ref} (${opt.rawTitle}); trying next`);
+      logger.warn("adult", `${meta.title} \u2014 TorBox returned no URL for ${ref} (${opt.rawTitle}); trying next`);
       continue;
     }
-    if (!fileNameMatchesMeta(meta2, detailed.name)) {
-      logger.warn("adult", `${meta2.title} \u2014 resolved file "${detailed.name}" doesn't match the item (dirty hash ${ref}); skipping`);
+    if (!fileNameMatchesMeta(meta, detailed.name)) {
+      logger.warn("adult", `${meta.title} \u2014 resolved file "${detailed.name}" doesn't match the item (dirty hash ${ref}); skipping`);
       continue;
     }
     const url = detailed.url;
-    const itemHandle = await createAdultPlaySession({
-      url,
-      durationSeconds: meta2.durationSeconds ?? 0,
-      title: meta2.title,
-      posterUrl: meta2.posterUrl,
-      infoHash: opt.infoHash
-    });
-    logger.success("adult", `${meta2.title} \u2014 resolved ${ref} (${opt.rawTitle})`);
+    logger.success("adult", `${meta.title} \u2014 resolved ${ref} (${opt.rawTitle})`);
     return {
       url,
-      itemId: itemHandle,
-      durationTicks: Math.max(0, Math.round((meta2.durationSeconds ?? 0) * 1e7)),
-      title: meta2.title,
-      posterUrl: meta2.posterUrl,
+      durationTicks: Math.max(0, Math.round((meta.durationSeconds ?? 0) * 1e7)),
+      title: meta.title,
+      posterUrl: meta.posterUrl,
       infoHash: opt.infoHash,
       fileName: detailed.name ?? opt.rawTitle
     };
   }
   if (queued) {
-    logger.info("adult", `${meta2.title} \u2014 nothing ready yet; reporting "downloading" (${queued.progress ?? 0}%)`);
+    logger.info("adult", `${meta.title} \u2014 nothing ready yet; reporting "downloading" (${queued.progress ?? 0}%)`);
     return queued;
   }
-  logger.warn("adult", `${meta2.title} \u2014 ${order.length} release(s) but none resolved to a URL`);
+  logger.warn("adult", `${meta.title} \u2014 ${order.length} release(s) but none resolved to a URL`);
   return null;
 }
 
 // src/catalog.ts
-var SEED_STUDIOS = [
-  "Brazzers",
-  "Blacked",
-  "BlackedRaw",
-  "Vixen",
-  "Tushy",
-  "TushyRaw",
-  "Deeper",
-  "Slayed",
-  "Naughty America",
-  "Reality Kings",
-  "Bangbros",
-  "Digital Playground",
-  "Evil Angel",
-  "Wicked",
-  "Mofos",
-  "TeamSkeet",
-  "Nubiles",
-  "Nubile Films",
-  "Pure Taboo",
-  "MissaX",
-  "FILF",
-  "Sis Loves Me",
-  "My Pervy Family",
-  "Family Strokes",
-  "Passion HD",
-  "Babes",
-  "Twistys",
-  "Property Sex",
-  "Fake Taxi",
-  "Fake Hostel",
-  "Public Agent",
-  "Mom4K",
-  "Exxxtra Small",
-  "Cum4K",
-  "Holed",
-  "Tiny4K",
-  "Dorcel",
-  "Private",
-  "New Sensations",
-  "Sweetheart Video",
-  "Girlsway",
-  "Adult Time",
-  "Sweet Sinner",
-  "Hard X",
-  "Dark X",
-  "Zero Tolerance",
-  "Jules Jordan",
-  "DorcelClub",
-  "LegalPorno",
-  "GangBang",
-  "Onlyfans"
-];
 var JAV_CODE2 = /\b[A-Z]{2,6}-?\d{2,5}\b/;
 var alnum2 = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 function isJav(t) {
@@ -9872,9 +9922,7 @@ async function zileanUrls() {
   return sources.filter((s) => s.source_type === "zilean" && s.url).map((s) => s.url);
 }
 async function getTorBox() {
-  const debrids = await listStreamAccounts("debrid");
-  const account = debrids.find((a) => a.provider === "torbox" && a.enabled === 1);
-  return account ? new TorBoxResolver(account) : null;
+  return getDebrid();
 }
 function fromKnaben(t) {
   return { ...t, parsedTitle: t.rawTitle, category: null, year: null, site: null, episodeCode: null };
@@ -9916,28 +9964,6 @@ async function liveHarvest(query, signal) {
   const urls = await zileanUrls();
   const added = await ingest(await harvestTerm(urls, q, signal), q);
   if (added > 0) logger.info("adult", `catalog: +${added} from live search "${q}"`);
-  return added;
-}
-async function harvestCatalog(signal) {
-  const urls = await zileanUrls();
-  let added = 0;
-  for (const term of SEED_STUDIOS) {
-    if (signal?.aborted) break;
-    try {
-      added += await ingest(await harvestTerm(urls, term, signal), term);
-    } catch {
-    }
-  }
-  try {
-    const { harvestPtube: harvestPtube2 } = await Promise.resolve().then(() => (init_ptube(), ptube_exports));
-    added += await harvestPtube2({ pages: 10, signal });
-  } catch {
-  }
-  const stats = await adultCatalogStats();
-  logger.success(
-    "adult",
-    `catalog crawl: +${added} new across ${SEED_STUDIOS.length} studios \xB7 total ${stats.total} (${stats.matched} matched, ${stats.enriched} enriched)`
-  );
   return added;
 }
 function matchIsTrustworthy(rawTitle, matchedTitle, type) {
@@ -9990,25 +10016,6 @@ async function enrichOne(row, token, scenesOnly) {
   }
   return false;
 }
-async function enrichRows(rows, token, opts = {}) {
-  let matched = 0;
-  for (const row of rows) {
-    if (await enrichOne(row, token, opts.scenesOnly ?? false)) matched++;
-    if (rows.length > 10) await new Promise((r) => setTimeout(r, 2500));
-  }
-  return matched;
-}
-async function enrichCatalogBatch(limit = 200) {
-  const token = (await getAddonConfig()).theporndb_api_key;
-  if (!token) {
-    logger.warn("adult", "catalog enrich skipped: no ThePornDB token");
-    return;
-  }
-  const rows = await listAdultCatalogForEnrich(limit);
-  if (!rows.length) return;
-  const matched = await enrichRows(rows, token);
-  logger.info("adult", `catalog enrich: ${rows.length} processed, ${matched} matched to ThePornDB`);
-}
 var TV_MARK = /\bS\d{1,2}[\s._-]?E\d{1,3}\b|\bS\d{2}\b|\b\d{1,2}x\d{2}\b|\b(?:season|episode)[\s._-]?\d{1,3}\b/i;
 var MAINSTREAM_RIP = /\b(19|20)\d{2}\b[\s\S]*\b(blu-?ray|web-?dl|web-?rip|hdrip|brrip|bdrip|dvdrip|hdtv|x264|x265|h\.?264|h\.?265|hevc|amzn|hmax|dsnp|atvp|rarbg|yts|yify)\b/i;
 var STREAMING_TAG = /\b(?:amzn|atvp|hmax|dsnp|dnsy|hulu|pcok|nf|nflx|max)\b/i;
@@ -10035,7 +10042,7 @@ function cleanReleaseName(raw) {
   s = s.replace(/[._]+/g, " ").replace(/\s{2,}/g, " ").trim();
   return s || raw;
 }
-function toCard2(row, cached) {
+function toCard(row, cached) {
   let performers = [];
   try {
     performers = JSON.parse(row.performers_json);
@@ -10134,14 +10141,13 @@ async function rowsFor(hashes) {
 async function cachedCards(key, cachedOnly) {
   const hashes = await cachedHashes(key);
   if (!hashes) return null;
-  return (await rowsFor(hashes)).map((r) => toCard2(r, cachedOnly ? true : void 0));
+  return (await rowsFor(hashes)).map((r) => toCard(r, cachedOnly ? true : void 0));
 }
 async function storeCards(key, cards, ttlS = RESULTS_TTL_S) {
   await storeHashes(key, cards.map((c) => c.infoHash).filter((h) => !!h), ttlS);
   return cards;
 }
-async function searchCatalog(library, query, opts = {}) {
-  void library;
+async function searchCatalog(query, opts = {}) {
   const q = query.trim();
   const cachedOnly = await adultCachedOnly();
   const key = `search:${cachedOnly ? 1 : 0}:${q.toLowerCase()}`;
@@ -10156,7 +10162,7 @@ async function searchCatalog(library, query, opts = {}) {
   return opts.signal?.aborted ? cards : storeCards(key, cards);
 }
 async function presentRows(load, signal, opts = {}) {
-  const token = (await getAddonConfig()).theporndb_api_key;
+  const token = (await settings()).tpdb_token;
   const cachedOnly = opts.forceCached === true || await adultCachedOnly();
   let shown = await load();
   let cachedSet = null;
@@ -10183,7 +10189,7 @@ async function presentRows(load, signal, opts = {}) {
       if (cachedSet) shown = shown.filter((r) => cachedSet.has(r.info_hash));
     }
   }
-  return dedupRows(shown, cachedSet).map((r) => toCard2(r, cachedSet ? true : void 0));
+  return dedupRows(shown, cachedSet).map((r) => toCard(r, cachedSet ? true : void 0));
 }
 var VR_STUDIOS = [
   "MilfVR",
@@ -10248,8 +10254,7 @@ async function harvestVrStudios() {
     vrHarvestRunning = false;
   }
 }
-async function browseVr(library, opts = {}) {
-  void library;
+async function browseVr(opts = {}) {
   void harvestVrStudios().catch(() => {
   });
   const cachedOnly = await adultCachedOnly();
@@ -10387,7 +10392,7 @@ async function adultResolveCatalog(infoHash, signal) {
   if (!row) return null;
   const resolver = await getTorBox();
   if (!resolver) {
-    logger.warn("adult", "catalog resolve skipped: no enabled TorBox debrid");
+    logger.warn("adult", "catalog resolve skipped: no add-on provides debrid");
     return null;
   }
   const title = row.title || row.parsed_title || row.raw_title;
@@ -10431,25 +10436,17 @@ async function adultResolveCatalog(infoHash, signal) {
   }
   let durationSeconds = row.duration_seconds ?? 0;
   if (durationSeconds <= 0) {
-    const probe = await probeFile(detailed.url).catch(() => null);
-    const probed = Math.floor(Number(probe?.format?.duration ?? 0));
+    const probe = await probeMedia(detailed.url);
+    const probed = Math.floor(Number(probe?.durationSeconds ?? 0));
     if (probed > 0) {
       durationSeconds = probed;
       await updateAdultCatalogDuration(row.info_hash, probed).catch(() => {
       });
     }
   }
-  const itemId = await createAdultPlaySession({
-    url: detailed.url,
-    durationSeconds,
-    title,
-    posterUrl: row.poster_url,
-    infoHash: row.info_hash
-  });
   logger.success("adult", `catalog resolved ${row.info_hash.slice(0, 8)} (${title}) \xB7 ${durationSeconds ? Math.round(durationSeconds / 60) + "m" : "duration unknown"}`);
   return {
     url: detailed.url,
-    itemId,
     durationTicks: Math.max(0, Math.round(durationSeconds * 1e7)),
     title,
     posterUrl: row.poster_url,
@@ -10458,14 +10455,15 @@ async function adultResolveCatalog(infoHash, signal) {
   };
 }
 
+// src/plugin.ts
+init_db();
+init_debrid();
+init_host2();
+
+// src/space.ts
+init_src();
+
 // src/apijav.ts
-var apijav_exports = {};
-__export(apijav_exports, {
-  APIJAV_DEFAULT_BASE: () => APIJAV_DEFAULT_BASE,
-  apijavCategories: () => apijavCategories,
-  apijavResolve: () => apijavResolve,
-  apijavSearch: () => apijavSearch
-});
 init_db();
 var APIJAV_DEFAULT_BASE = "https://server.apijav.com";
 var CAT_NS = "apijav_categories";
@@ -10479,7 +10477,7 @@ function authHeaders2(apiKey) {
 function base(url) {
   return (url || APIJAV_DEFAULT_BASE).replace(/\/+$/, "");
 }
-async function getJson3(url, opts) {
+async function getJson2(url, opts) {
   try {
     const res = await fetch(url, { headers: authHeaders2(opts.apiKey), signal: opts.signal });
     if (!res.ok) return null;
@@ -10529,7 +10527,7 @@ async function apijavSearch(baseUrl, opts) {
   if (opts.page && opts.page > 1) params.set("page", String(opts.page));
   if (opts.query?.trim()) params.set("search", opts.query.trim());
   if (opts.category?.trim()) params.set("category", opts.category.trim());
-  const json = await getJson3(`${base(baseUrl)}/wp-json/myvideo/v1/posts?${params.toString()}`, opts);
+  const json = await getJson2(`${base(baseUrl)}/wp-json/myvideo/v1/posts?${params.toString()}`, opts);
   if (!Array.isArray(json)) return [];
   return json.map(mapPost).filter((c) => c !== null);
 }
@@ -10542,7 +10540,7 @@ async function apijavCategories(baseUrl, opts = {}) {
     } catch {
     }
   }
-  const json = await getJson3(
+  const json = await getJson2(
     `${b}/wp-json/wp/v2/categories?per_page=100&orderby=count&order=desc&_fields=name,slug,count`,
     opts
   );
@@ -10589,7 +10587,7 @@ function extractHlsVariants(html) {
 }
 async function apijavResolve(baseUrl, postId, opts = {}) {
   const b = base(baseUrl);
-  const post = await getJson3(`${b}/wp-json/myvideo/v1/posts/${encodeURIComponent(postId)}`, opts);
+  const post = await getJson2(`${b}/wp-json/myvideo/v1/posts/${encodeURIComponent(postId)}`, opts);
   const embedUrl = typeof post?.embed_url === "string" ? post.embed_url.replace(/&#0*38;/g, "&").replace(/&amp;/g, "&") : null;
   if (!embedUrl) return null;
   let html = "";
@@ -10618,24 +10616,41 @@ async function apijavResolve(baseUrl, postId, opts = {}) {
   };
 }
 
-// src/rapidgator.ts
-var rapidgator_exports = {};
-__export(rapidgator_exports, {
-  decodeRapidgatorId: () => decodeRapidgatorId,
-  parseRapidgatorUrl: () => parseRapidgatorUrl,
-  parseReleaseName: () => parseReleaseName3,
-  rapidgatorAvailable: () => rapidgatorAvailable,
-  rapidgatorResolve: () => rapidgatorResolve,
-  rapidgatorSearch: () => rapidgatorSearch
-});
+// src/space.ts
+init_db();
+init_host2();
 
 // src/searxng.ts
-init_host();
-var webSearch = (query, opts) => getVaultHost().webSearch(query, opts);
+init_host2();
+async function webSearch(query, opts = {}) {
+  if (!hasVaultHost() || opts.signal?.aborted) return [];
+  return getVaultHost().services.webSearch(query, { limit: opts.limit, page: opts.page });
+}
+
+// src/playback.ts
+init_log();
+async function probeAdultStream(url, timeoutMs = 12e3) {
+  try {
+    const p = await Promise.race([probeMedia(url), new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs))]);
+    if (!p) return null;
+    const streamInfo = {
+      container: p.container ?? null,
+      videoCodec: p.videoCodec ?? null,
+      audioCodec: p.audioCodec ?? null,
+      resolution: p.width && p.height ? `${p.width}x${p.height}` : null,
+      bitrate: p.bitrate ?? null,
+      videoFrameRate: p.framerate ?? null,
+      audioChannels: p.audioChannels ?? null
+    };
+    return { durationSeconds: p.durationSeconds || 0, streamInfo, hasVideo: !!p.videoCodec && (p.width ?? 0) > 0 };
+  } catch (e) {
+    logger.warn("adult", `probe failed: ${e?.message ?? e}`);
+    return null;
+  }
+}
 
 // src/rapidgator.ts
 init_log();
-var RD_HOST2 = "https://api.real-debrid.com/rest/1.0";
 var DEAD_NS = "rapidgator_dead";
 var DEAD_TTL = 7 * 24 * 3600;
 async function markDeadLink(fileUrl) {
@@ -10691,7 +10706,7 @@ function parseRapidgatorUrl(rawUrl) {
 function titleToFilename(title) {
   return title.replace(/^download file\s*/i, "").replace(/\s*[-–]\s*rapidgator.*$/i, "").replace(/…|\.\.\./g, "").trim();
 }
-function parseReleaseName3(rawName) {
+function parseReleaseName2(rawName) {
   const name = rawName.replace(VIDEO_EXT4, "").trim();
   const resM = name.match(RES_RE);
   let resolution = resM ? resM[1].toLowerCase() : null;
@@ -10725,10 +10740,8 @@ function decodeRapidgatorId(id) {
 }
 async function rapidgatorAvailable() {
   try {
-    const { listStreamAccounts: listStreamAccounts2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    return (await listStreamAccounts2("debrid")).some(
-      (a) => a.provider === "realdebrid" && !!a.api_key
-    );
+    const { canUnrestrict: canUnrestrict2 } = await Promise.resolve().then(() => (init_debrid(), debrid_exports));
+    return await canUnrestrict2();
   } catch {
     return false;
   }
@@ -10756,10 +10769,10 @@ async function mapLimit2(items, limit, fn) {
 var TPDB_NS = "rapidgator_tpdb";
 var TPDB_HIT_TTL = 7 * 24 * 3600;
 var TPDB_MISS_TTL = 24 * 3600;
-async function enrichWithTpdb(card, releaseName, token, signal) {
-  if (!token) return card;
+async function enrichWithTpdb(card2, releaseName, token, signal) {
+  if (!token) return card2;
   const key = releaseName.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 200);
-  if (!key) return card;
+  if (!key) return card2;
   let match = null;
   try {
     const { kvGet: kvGet2, kvSet: kvSet2 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -10775,24 +10788,24 @@ async function enrichWithTpdb(card, releaseName, token, signal) {
       });
     }
   } catch {
-    return card;
+    return card2;
   }
-  if (!match) return card;
+  if (!match) return card2;
   return {
-    ...card,
+    ...card2,
     // Keep the rapidgator: id (resolve unrestricts THAT file) — only the display
     // metadata comes from TPDB.
-    title: match.title || card.title,
-    posterUrl: match.posterUrl ?? card.posterUrl,
-    backgroundUrl: match.backgroundUrl ?? card.backgroundUrl,
-    date: match.date ?? card.date,
-    year: match.date ? Number(match.date.slice(0, 4)) : card.year,
-    performers: match.performers.length ? match.performers : card.performers,
-    studio: match.studio ?? card.studio,
-    description: match.description ?? card.description,
-    rating: match.rating ?? card.rating,
-    durationSeconds: match.durationSeconds ?? card.durationSeconds,
-    contentType: match.contentType ?? card.contentType
+    title: match.title || card2.title,
+    posterUrl: match.posterUrl ?? card2.posterUrl,
+    backgroundUrl: match.backgroundUrl ?? card2.backgroundUrl,
+    date: match.date ?? card2.date,
+    year: match.date ? Number(match.date.slice(0, 4)) : card2.year,
+    performers: match.performers.length ? match.performers : card2.performers,
+    studio: match.studio ?? card2.studio,
+    description: match.description ?? card2.description,
+    rating: match.rating ?? card2.rating,
+    durationSeconds: match.durationSeconds ?? card2.durationSeconds,
+    contentType: match.contentType ?? card2.contentType
   };
 }
 async function rapidgatorSearch(query, opts = {}) {
@@ -10826,30 +10839,30 @@ async function rapidgatorSearch(query, opts = {}) {
   const live = dead.size ? raw.filter((r) => !dead.has(r.hash)) : raw;
   let token = "";
   try {
-    const { getAddonConfig: getAddonConfig2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-    token = (await getAddonConfig2()).theporndb_api_key || "";
+    const { settings: settings2 } = await Promise.resolve().then(() => (init_host2(), host_exports));
+    token = (await settings2()).tpdb_token;
   } catch {
   }
   const cards = await mapLimit2(live, 6, async ({ url, hash, filename }) => {
-    const meta2 = parseReleaseName3(filename);
+    const meta = parseReleaseName2(filename);
     const base2 = {
       id: encodeId(url),
       kind: "scene",
       contentType: null,
       uuid: hash,
-      title: meta2.title,
+      title: meta.title,
       posterUrl: null,
       backgroundUrl: null,
-      date: meta2.date,
-      year: meta2.date ? Number(meta2.date.slice(0, 4)) : null,
+      date: meta.date,
+      year: meta.date ? Number(meta.date.slice(0, 4)) : null,
       performers: [],
-      studio: meta2.studio,
+      studio: meta.studio,
       description: null,
       rating: null,
       durationSeconds: null,
       source: "rapidgator",
-      resolution: meta2.resolution,
-      isVr: meta2.isVr
+      resolution: meta.resolution,
+      isVr: meta.isVr
     };
     return enrichWithTpdb(base2, filename, token, opts.signal);
   });
@@ -10885,35 +10898,14 @@ async function rapidgatorSearch(query, opts = {}) {
 async function rapidgatorResolve(id) {
   const url = decodeRapidgatorId(id);
   if (!url) return null;
-  const { listStreamAccounts: listStreamAccounts2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-  const accounts = await listStreamAccounts2("debrid");
-  const rd = accounts.find((a) => a.provider === "realdebrid" && a.enabled === 1 && !!a.api_key) ?? accounts.find((a) => a.provider === "realdebrid" && !!a.api_key);
-  if (!rd?.api_key) {
-    logger.warn("adult", "Rapidgator resolve: no Real-Debrid account configured");
+  const { unrestrict: unrestrict2 } = await Promise.resolve().then(() => (init_debrid(), debrid_exports));
+  const r = await unrestrict2(url).catch((e) => ({ status: "failed", message: e?.message }));
+  if (r.status !== "ready") {
+    logger.warn("adult", `Rapidgator unrestrict failed: ${r.status === "failed" ? r.message ?? "" : r.status}`);
+    if (r.status === "failed" && r.message === "gone") await markDeadLink(url);
     return null;
   }
-  let data = null;
-  try {
-    const res = await fetch(`${RD_HOST2}/unrestrict/link`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${rd.api_key}`,
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: new URLSearchParams({ link: url }),
-      signal: AbortSignal.timeout(2e4)
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      logger.warn("adult", `Rapidgator unrestrict \u2192 HTTP ${res.status}: ${body.slice(0, 120)}`);
-      if (res.status === 404 || res.status === 451) await markDeadLink(url);
-      return null;
-    }
-    data = await res.json();
-  } catch (e) {
-    logger.warn("adult", `Rapidgator unrestrict errored: ${e?.message ?? e}`);
-    return null;
-  }
+  const data = { download: r.url, filename: r.fileName };
   if (!data?.download) return null;
   const filename = data.filename ?? parseRapidgatorUrl(url)?.filename ?? "";
   if (ARCHIVE_EXT.test(filename)) {
@@ -10927,412 +10919,257 @@ async function rapidgatorResolve(id) {
   }
   const durationSeconds = probe?.durationSeconds ?? 0;
   const streamInfo = probe?.streamInfo ?? null;
-  const meta2 = parseReleaseName3(filename);
-  const itemId = await createAdultPlaySession({
-    url: data.download,
-    durationSeconds,
-    // real probed runtime (0 only when the probe was inconclusive)
-    title: meta2.title,
-    posterUrl: null,
-    infoHash: null,
-    streamInfo
-  });
+  const meta = parseReleaseName2(filename);
   return {
     url: data.download,
-    itemId,
     durationTicks: Math.max(0, Math.round(durationSeconds * 1e7)),
-    title: meta2.title || filename,
+    title: meta.title || filename,
     posterUrl: null,
     infoHash: null,
     streamInfo
   };
 }
-
-// src/hls.ts
-var hls_exports = {};
-__export(hls_exports, {
-  buildAdultHlsProxyUrl: () => buildAdultHlsProxyUrl,
-  getAdultHlsSecret: () => getAdultHlsSecret,
-  handleHlsProxyRequest: () => handleHlsProxyRequest,
-  hlsProxyOptionsResponse: () => hlsProxyOptionsResponse,
-  isBlockedProxyHost: () => isBlockedProxyHost,
-  rewritePlaylist: () => rewritePlaylist,
-  verifyAdultHlsSig: () => verifyAdultHlsSig
-});
-init_db();
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-var SECRET_NS = "adult_hls";
-var SECRET_KEY = "sign_secret";
-var cachedSecret = null;
-async function getAdultHlsSecret() {
-  if (cachedSecret) return cachedSecret;
-  const existing = await kvGet(SECRET_KEY, SECRET_NS);
-  if (existing) {
-    cachedSecret = existing;
-    return existing;
-  }
-  const fresh = randomBytes(32).toString("hex");
-  await kvSet(SECRET_KEY, SECRET_NS, fresh, 0);
-  cachedSecret = fresh;
-  return fresh;
-}
-function sign(target, secret) {
-  return createHmac("sha256", secret).update(target).digest("hex");
-}
-function verifyAdultHlsSig(target, sig, secret) {
-  const expected = sign(target, secret);
-  if (sig.length !== expected.length) return false;
-  try {
-    return timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
-  } catch {
-    return false;
-  }
-}
-function targetFilename(target) {
-  try {
-    const base2 = new URL(target).pathname.split("/").pop() ?? "";
-    const clean = base2.replace(/[^a-zA-Z0-9._-]/g, "");
-    return clean || "s";
-  } catch {
-    return "s";
-  }
-}
-function buildAdultHlsProxyUrl(origin, target, secret) {
-  const u = Buffer.from(target, "utf8").toString("base64url");
-  const sig = sign(target, secret);
-  const name = encodeURIComponent(targetFilename(target));
-  return `${origin.replace(/\/$/, "")}/api/adult-hls/${name}?u=${u}&sig=${sig}`;
-}
-function rewritePlaylist(text, baseUrl, origin, secret) {
-  let parentHost = "";
-  try {
-    parentHost = new URL(baseUrl).host;
-  } catch {
-    return text;
-  }
-  const proxify = (rawUri) => {
-    let abs;
-    try {
-      abs = new URL(rawUri, baseUrl);
-    } catch {
-      return rawUri;
-    }
-    if (abs.host !== parentHost || isBlockedProxyHost(abs.hostname)) return rawUri;
-    return buildAdultHlsProxyUrl(origin, abs.href, secret);
-  };
-  return text.split("\n").map((line) => {
-    const l = line.trim();
-    if (l === "") return line;
-    if (l.startsWith("#")) {
-      return line.replace(/URI="([^"]+)"/g, (_m, uri) => `URI="${proxify(uri)}"`);
-    }
-    return proxify(l);
-  }).join("\n");
-}
-function isBlockedProxyHost(hostname) {
-  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (h === "localhost" || h === "127.0.0.1" || h === "::1") return true;
-  if (!h.includes(".") && !h.includes(":")) return true;
-  if (/^10\./.test(h)) return true;
-  if (/^192\.168\./.test(h)) return true;
-  if (/^169\.254\./.test(h)) return true;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
-  if (/^127\./.test(h)) return true;
-  if (h.startsWith("fe80:") || h.startsWith("fc") || h.startsWith("fd")) return true;
-  return false;
-}
-var UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
-var CONNECT_TIMEOUT_MS = 2e4;
-function cors(headers) {
-  headers.set("Access-Control-Allow-Origin", "*");
-  headers.set("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS");
-  headers.set("Access-Control-Allow-Headers", "Range,Content-Type");
-  headers.set("Access-Control-Expose-Headers", "Content-Length,Content-Range,Accept-Ranges");
-  return headers;
-}
-function isPlaylistTarget(target, contentType) {
-  const path4 = (target.split("?")[0] ?? "").toLowerCase();
-  if (path4.endsWith(".m3u8") || path4.endsWith(".m3u")) return true;
-  const ct = (contentType ?? "").toLowerCase();
-  return ct.includes("mpegurl");
-}
-function hlsProxyOptionsResponse() {
-  return new Response(null, { status: 204, headers: cors(new Headers()) });
-}
-async function handleHlsProxyRequest(request, origin, method) {
-  const url = new URL(request.url);
-  const u = url.searchParams.get("u");
-  const sig = url.searchParams.get("sig");
-  if (!u || !sig) return new Response("bad request", { status: 400, headers: cors(new Headers()) });
-  let target;
-  try {
-    target = Buffer.from(u, "base64url").toString("utf8");
-  } catch {
-    return new Response("bad u", { status: 400, headers: cors(new Headers()) });
-  }
-  const secret = await getAdultHlsSecret();
-  if (!verifyAdultHlsSig(target, sig, secret)) {
-    return new Response("bad signature", { status: 403, headers: cors(new Headers()) });
-  }
-  let targetUrl;
-  try {
-    targetUrl = new URL(target);
-  } catch {
-    return new Response("bad target", { status: 400, headers: cors(new Headers()) });
-  }
-  if (!/^https?:$/.test(targetUrl.protocol) || isBlockedProxyHost(targetUrl.hostname)) {
-    return new Response("blocked host", { status: 403, headers: cors(new Headers()) });
-  }
-  const upstreamHeaders = {
-    "User-Agent": UA,
-    Referer: `${targetUrl.origin}/`,
-    Accept: "*/*"
-  };
-  const range = request.headers.get("range");
-  if (range) upstreamHeaders.Range = range;
-  const ac = new AbortController();
-  request.signal.addEventListener("abort", () => ac.abort(), { once: true });
-  const connectTimer = setTimeout(() => ac.abort(), CONNECT_TIMEOUT_MS);
-  let res;
-  try {
-    res = await fetch(target, {
-      method,
-      headers: upstreamHeaders,
-      redirect: "follow",
-      signal: ac.signal
-    });
-  } catch (e) {
-    clearTimeout(connectTimer);
-    return new Response(`upstream fetch failed: ${e.message}`, {
-      status: 502,
-      headers: cors(new Headers())
-    });
-  }
-  if (isPlaylistTarget(res.url || target, res.headers.get("content-type"))) {
-    clearTimeout(connectTimer);
-    const text = await res.text().catch(() => "");
-    if (!res.ok) {
-      return new Response(text || `upstream ${res.status}`, {
-        status: res.status,
-        headers: cors(new Headers())
-      });
-    }
-    const rewritten = rewritePlaylist(text, res.url || target, origin, secret);
-    const h2 = cors(new Headers());
-    h2.set("Content-Type", "application/vnd.apple.mpegurl");
-    h2.set("Cache-Control", "no-store");
-    return new Response(method === "HEAD" ? null : rewritten, { status: 200, headers: h2 });
-  }
-  const h = cors(new Headers());
-  for (const k of [
-    "content-type",
-    "content-length",
-    "content-range",
-    "accept-ranges",
-    "cache-control",
-    "etag",
-    "last-modified"
-  ]) {
-    const v = res.headers.get(k);
-    if (v) h.set(k, v);
-  }
-  if (!h.has("accept-ranges")) h.set("accept-ranges", "bytes");
-  clearTimeout(connectTimer);
-  return new Response(method === "HEAD" ? null : res.body, { status: res.status, headers: h });
-}
-
-// src/resources.ts
-init_db();
-var isInfoHash = (id) => /^[a-f0-9]{40}$/i.test(id);
-async function libraryFromRequest({ extra }) {
-  const libraryId = typeof extra.libraryId === "string" ? extra.libraryId : "";
-  const library = libraryId ? await getLibrary(libraryId) : void 0;
-  if (!library) throw new Error("extra.libraryId must name an adult library");
-  return library;
-}
-function resultMeta(r) {
-  return {
-    ...r,
-    id: r.id,
-    type: "adult",
-    name: r.title,
-    poster: r.posterUrl,
-    background: r.backgroundUrl,
-    description: r.description,
-    releaseInfo: r.date ?? (r.year ? String(r.year) : null),
-    duration: r.durationSeconds,
-    posterShape: r.kind === "performer" ? "portrait" : "landscape"
-  };
-}
-function tpdbMeta(id, t) {
-  return {
-    id,
-    type: "adult",
-    name: t.title,
-    description: t.description,
-    poster: t.posterUrl,
-    background: t.backgroundUrl,
-    releaseInfo: t.date,
-    duration: t.durationSeconds,
-    rating: t.rating,
-    studio: t.studio,
-    performers: t.performers,
-    genres: t.tags,
-    posterShape: "landscape"
-  };
-}
-function catalogRowMeta(row) {
-  let performers = [];
-  try {
-    performers = JSON.parse(row.performers_json || "[]");
-  } catch {
-  }
-  return {
-    id: row.info_hash.toLowerCase(),
-    type: "adult",
-    name: row.title || row.parsed_title || row.raw_title,
-    poster: row.poster_url,
-    releaseInfo: row.date ?? (row.year ? String(row.year) : null),
-    duration: row.duration_seconds,
-    studio: row.studio,
-    performers,
-    posterShape: "landscape"
-  };
-}
-async function meta(id) {
-  if (isInfoHash(id)) {
-    const row = await getAdultCatalogEntry(id.toLowerCase());
-    if (!row) return { meta: null };
-    if (row.tpdb_id && row.tpdb_type) {
-      const full = await meta(`tpdb:${row.tpdb_type}:${row.tpdb_id}`).catch(() => ({ meta: null }));
-      if (full.meta) return { meta: { ...full.meta, id: row.info_hash.toLowerCase() } };
-    }
-    return { meta: catalogRowMeta(row) };
-  }
-  const token = (await getAddonConfig()).theporndb_api_key ?? "";
-  const performer = /^performer:(.+)$/.exec(id);
-  if (performer) {
-    const p = await tpdbGetPerformer(performer[1], { token });
-    return {
-      meta: p ? { id, type: "person", name: p.name, poster: p.imageUrl, description: p.details, posterShape: "portrait" } : null
-    };
-  }
-  const m = /^tpdb:(scenes|movies|jav):(.+)$/.exec(id);
-  if (!m) throw new Error(`meta does not understand id "${id}"`);
-  const t = await tpdbGetById(m[2], { token, contentType: m[1] });
-  return { meta: t ? tpdbMeta(id, t) : null };
-}
-async function artwork(id) {
-  const { meta: m } = await meta(id);
-  const poster = m?.poster ?? null;
-  const background = m?.background ?? null;
-  return { artwork: { poster, background, thumb: background ?? poster } };
-}
-function toResolve(r) {
-  if (!r) return { url: null };
-  if ("queued" in r) {
-    return {
-      url: null,
-      preparing: { progress: r.progress ?? void 0, message: r.state ?? void 0 }
-    };
-  }
-  return { url: r.url, playback: r };
-}
-async function resolve(req) {
-  if (isInfoHash(req.id)) return toResolve(await adultResolveCatalog(req.id.toLowerCase()));
-  return toResolve(
-    await adultResolveItem(await libraryFromRequest(req), req.id, void 0, {
-      hash: typeof req.extra.hash === "string" ? req.extra.hash : void 0
-    })
-  );
-}
-async function streams(req) {
-  const list = isInfoHash(req.id) ? await adultListCatalogStreams(req.id.toLowerCase()) : await adultListStreams(await libraryFromRequest(req), req.id);
-  return { streams: list.map((s) => ({ ...s, name: s.rawTitle })) };
-}
-var resources = {
-  // search/adult/<query>.json?libraryId=… — ThePornDB-backed search.
-  search: async (req) => ({
-    metas: (await adultSearch(await libraryFromRequest(req), req.id)).map(resultMeta)
-  }),
-  // catalog/adult/<rail>.json — a browse list from the manifest's `catalogs`
-  // (new, vr-new, studio:<x>; cached-on-TorBox only). Any other id is a
-  // free-text search of the locally harvested catalog (back-compat).
-  catalog: async (req) => ({
-    metas: (isCatalogRail(req.id) ? await catalogRail(req.id) : await searchCatalog(req.extra.libraryId ? await libraryFromRequest(req) : {}, req.id)).map(resultMeta)
-  }),
-  // automation/automation/refresh-catalogs.json — manifest zero.automations.
-  automation: async ({ id }) => {
-    if (id === "refresh-catalogs") {
-      const r = await refreshCatalogRails();
-      return { ok: true, message: `${r.rails} lists, ${r.cards} cached releases` };
-    }
-    throw new Error(`unknown automation "${id}"`);
-  },
-  meta: ({ id }) => meta(id),
-  artwork: ({ id }) => artwork(id),
-  stream: streams,
-  resolve
-};
 
 // manifest.json
 var manifest_default = {
   id: "zero.vault",
   name: "Vault",
   version: "2.0.1",
-  description: "Adult content for Zero Media \u2014 password-gated catalog + search (ThePornDB metadata; Zilean / Torznab / apiJAV / Rapidgator sourcing; on-demand debrid playback). Stays fully isolated from every normal library. Installing reveals the Adult library kind, the Adult sources section, and the ThePornDB credential.",
+  description: "A locked space of its own \u2014 catalog and search with ThePornDB metadata (Zilean / Torznab / Knaben / apiJAV / Rapidgator sources), played through the debrid service.",
   resources: [
     "catalog",
-    "search",
-    "meta",
-    "artwork",
     "stream",
-    "resolve",
+    "space",
     "automation"
   ],
   types: [
-    "adult",
-    "person"
+    "video"
   ],
   idPrefixes: [
+    "catalog:",
     "tpdb:",
-    "performer:"
+    "rapidgator:",
+    "apijav:"
   ],
   provides: {
     content: [
-      "adult"
-    ],
-    metadata: [
-      "adult"
-    ],
-    artwork: [
       "adult"
     ]
   },
   zero: {
     kind: "adult",
-    sdk: 2,
+    sdk: 3,
     repo: "j4ckgrey/zero_vault",
     branch: "main",
     bundlePath: "dist/index.mjs",
     bundleUrl: "https://raw.githubusercontent.com/j4ckgrey/zero_vault/release/dist/index.mjs",
-    tabs: [],
-    configKeys: [
+    settings: [
       {
-        key: "theporndb_api_key",
-        label: "ThePornDB",
-        category: "Adult Content",
-        description: "API token from api.theporndb.net \u2192 API tokens. Powers adult metadata + search."
+        key: "tpdb_token",
+        type: "secret",
+        label: "ThePornDB API token",
+        description: "From api.theporndb.net \u2192 API tokens. Search, titles and pictures need it."
+      },
+      {
+        key: "content_types",
+        type: "list",
+        label: "What ThePornDB search covers",
+        description: "One per line: scenes, movies, jav.",
+        default: [
+          "scenes",
+          "movies",
+          "jav"
+        ]
+      },
+      {
+        key: "zilean_url",
+        type: "url",
+        label: "Zilean",
+        description: "A Zilean instance (DMM hashlists) \u2014 the main source of releases for the catalog.",
+        placeholder: "https://zilean.example.com"
+      },
+      {
+        key: "torznab_url",
+        type: "url",
+        label: "Torznab (Prowlarr / Jackett)",
+        description: "Your indexer with adult (XXX) trackers."
+      },
+      {
+        key: "torznab_key",
+        type: "secret",
+        label: "Torznab API key"
+      },
+      {
+        key: "torznab_categories",
+        type: "text",
+        label: "Torznab categories",
+        default: "6000,6010,6020,6030,6040,6050,6060,6070,6080,6090"
+      },
+      {
+        key: "apijav_enabled",
+        type: "toggle",
+        label: "apiJAV",
+        description: "JAV catalog with its own player (direct HLS, no debrid).",
+        default: false
+      },
+      {
+        key: "apijav_url",
+        type: "url",
+        label: "apiJAV address",
+        default: "https://server.apijav.com",
+        showIf: {
+          key: "apijav_enabled",
+          equals: true
+        }
+      },
+      {
+        key: "apijav_key",
+        type: "secret",
+        label: "apiJAV key (optional)",
+        showIf: {
+          key: "apijav_enabled",
+          equals: true
+        }
+      },
+      {
+        key: "cached_only",
+        type: "toggle",
+        label: "Cached on debrid only",
+        description: "On: only releases the debrid has ready play. Off: picking one that isn't cached starts the download.",
+        default: true
+      },
+      {
+        key: "home_rails",
+        type: "list",
+        label: "Start-page rows",
+        default: []
       }
     ],
-    features: [
-      "adult"
+    actions: [
+      {
+        id: "status"
+      },
+      {
+        id: "rails-list"
+      },
+      {
+        id: "rails-toggle"
+      },
+      {
+        id: "refresh-catalogs"
+      }
     ],
+    ui: {
+      tabs: [
+        {
+          id: "vault",
+          label: "Vault",
+          icon: "lock",
+          group: "content",
+          description: "A locked space with its own catalog and search \u2014 ThePornDB metadata, played through debrid.",
+          sections: [
+            {
+              kind: "status",
+              id: "status",
+              title: "Status",
+              source: "status"
+            },
+            {
+              kind: "form",
+              id: "metadata",
+              title: "Metadata",
+              fields: [
+                "tpdb_token",
+                "content_types"
+              ]
+            },
+            {
+              kind: "form",
+              id: "sources",
+              title: "Sources",
+              description: "Knaben is always searched; add the ones you have.",
+              fields: [
+                "zilean_url",
+                "torznab_url",
+                "torznab_key",
+                "torznab_categories",
+                "apijav_enabled",
+                "apijav_url",
+                "apijav_key"
+              ]
+            },
+            {
+              kind: "form",
+              id: "playback",
+              title: "Playback",
+              fields: [
+                "cached_only"
+              ]
+            },
+            {
+              kind: "table",
+              id: "rails",
+              title: "Start-page rows",
+              description: "Lists shown when the space opens (releases cached on the debrid only).",
+              rows: "rails-list",
+              columns: [
+                {
+                  key: "title",
+                  label: "List"
+                },
+                {
+                  key: "group",
+                  label: "Group"
+                },
+                {
+                  key: "enabled",
+                  label: "Shown",
+                  format: "bool"
+                }
+              ],
+              rowButtons: [
+                {
+                  action: "rails-toggle",
+                  label: "Show / hide"
+                }
+              ]
+            },
+            {
+              kind: "buttons",
+              id: "tools",
+              title: "Tools",
+              buttons: [
+                {
+                  action: "refresh-catalogs",
+                  label: "Refresh lists now"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    spaces: [
+      {
+        id: "library",
+        name: "Vault",
+        icon: "lock",
+        layout: "video",
+        locked: true,
+        render: "addon",
+        proxyImages: true
+      }
+    ],
+    services: {
+      uses: [
+        "debrid"
+      ]
+    },
     automations: [
       {
         id: "refresh-catalogs",
         name: "Refresh adult catalogs",
-        description: "Rebuilds the adult catalog lists (New in VR, VR studios, New releases, studios) \u2014 only releases cached on TorBox \u2014 and pulls new VR studio releases. Turn lists on in Catalogs \u2192 Vault.",
+        description: "Rebuilds Vault's lists (New in VR, VR studios, New releases, studios \u2014 releases cached on the debrid only) and pulls new VR studio releases.",
         intervalMinutes: 240
       }
     ]
@@ -11340,7 +11177,7 @@ var manifest_default = {
   catalogs: [
     {
       id: "vr-new",
-      type: "adult",
+      type: "video",
       name: "New in VR",
       names: {
         en: "New in VR",
@@ -11362,11 +11199,12 @@ var manifest_default = {
         nl: "VR",
         pt: "VR",
         zh: "VR"
-      }
+      },
+      vr: true
     },
     {
       id: "studio:MilfVR",
-      type: "adult",
+      type: "video",
       name: "MilfVR",
       group: "vr",
       groupNames: {
@@ -11378,11 +11216,12 @@ var manifest_default = {
         nl: "VR",
         pt: "VR",
         zh: "VR"
-      }
+      },
+      vr: true
     },
     {
       id: "studio:WankzVR",
-      type: "adult",
+      type: "video",
       name: "WankzVR",
       group: "vr",
       groupNames: {
@@ -11394,11 +11233,12 @@ var manifest_default = {
         nl: "VR",
         pt: "VR",
         zh: "VR"
-      }
+      },
+      vr: true
     },
     {
       id: "studio:VRBangers",
-      type: "adult",
+      type: "video",
       name: "VRBangers",
       group: "vr",
       groupNames: {
@@ -11410,11 +11250,12 @@ var manifest_default = {
         nl: "VR",
         pt: "VR",
         zh: "VR"
-      }
+      },
+      vr: true
     },
     {
       id: "studio:SexLikeReal",
-      type: "adult",
+      type: "video",
       name: "SexLikeReal",
       group: "vr",
       groupNames: {
@@ -11426,11 +11267,12 @@ var manifest_default = {
         nl: "VR",
         pt: "VR",
         zh: "VR"
-      }
+      },
+      vr: true
     },
     {
       id: "studio:BaDoinkVR",
-      type: "adult",
+      type: "video",
       name: "BaDoinkVR",
       group: "vr",
       groupNames: {
@@ -11442,11 +11284,12 @@ var manifest_default = {
         nl: "VR",
         pt: "VR",
         zh: "VR"
-      }
+      },
+      vr: true
     },
     {
       id: "studio:CzechVR",
-      type: "adult",
+      type: "video",
       name: "CzechVR",
       group: "vr",
       groupNames: {
@@ -11458,11 +11301,12 @@ var manifest_default = {
         nl: "VR",
         pt: "VR",
         zh: "VR"
-      }
+      },
+      vr: true
     },
     {
       id: "new",
-      type: "adult",
+      type: "video",
       name: "New releases",
       names: {
         en: "New releases",
@@ -11488,7 +11332,7 @@ var manifest_default = {
     },
     {
       id: "studio:Brazzers",
-      type: "adult",
+      type: "video",
       name: "Brazzers",
       group: "studios",
       groupNames: {
@@ -11504,7 +11348,7 @@ var manifest_default = {
     },
     {
       id: "studio:Vixen",
-      type: "adult",
+      type: "video",
       name: "Vixen",
       group: "studios",
       groupNames: {
@@ -11520,7 +11364,7 @@ var manifest_default = {
     },
     {
       id: "studio:Blacked",
-      type: "adult",
+      type: "video",
       name: "Blacked",
       group: "studios",
       groupNames: {
@@ -11536,7 +11380,7 @@ var manifest_default = {
     },
     {
       id: "studio:Tushy",
-      type: "adult",
+      type: "video",
       name: "Tushy",
       group: "studios",
       groupNames: {
@@ -11552,7 +11396,7 @@ var manifest_default = {
     },
     {
       id: "studio:Reality Kings",
-      type: "adult",
+      type: "video",
       name: "Reality Kings",
       group: "studios",
       groupNames: {
@@ -11568,7 +11412,7 @@ var manifest_default = {
     },
     {
       id: "studio:Naughty America",
-      type: "adult",
+      type: "video",
       name: "Naughty America",
       group: "studios",
       groupNames: {
@@ -11585,15 +11429,324 @@ var manifest_default = {
   ]
 };
 
+// src/space.ts
+var TEXT = {
+  catalog: { en: "Movies & scenes", de: "Filme & Szenen", fr: "Films et sc\xE8nes", it: "Film e scene", es: "Pel\xEDculas y escenas", nl: "Films & sc\xE8nes", pt: "Filmes e cenas", zh: "\u7535\u5F71\u548C\u573A\u666F" },
+  jav: { en: "JAV", de: "JAV", fr: "JAV", it: "JAV", es: "JAV", nl: "JAV", pt: "JAV", zh: "JAV" },
+  files: { en: "Files", de: "Dateien", fr: "Fichiers", it: "File", es: "Archivos", nl: "Bestanden", pt: "Arquivos", zh: "\u6587\u4EF6" },
+  all: { en: "All", de: "Alle", fr: "Tout", it: "Tutto", es: "Todo", nl: "Alles", pt: "Tudo", zh: "\u5168\u90E8" },
+  vrOnly: { en: "VR only", de: "Nur VR", fr: "VR uniquement", it: "Solo VR", es: "Solo VR", nl: "Alleen VR", pt: "S\xF3 VR", zh: "\u4EC5 VR" },
+  category: { en: "Category", de: "Kategorie", fr: "Cat\xE9gorie", it: "Categoria", es: "Categor\xEDa", nl: "Categorie", pt: "Categoria", zh: "\u5206\u7C7B" },
+  noResults: { en: "No results.", de: "Keine Ergebnisse.", fr: "Aucun r\xE9sultat.", it: "Nessun risultato.", es: "Sin resultados.", nl: "Geen resultaten.", pt: "Nenhum resultado.", zh: "\u6CA1\u6709\u7ED3\u679C\u3002" },
+  start: {
+    en: "Search to get started \u2014 or pick home rows in Dashboard \u2192 Vault.",
+    de: "Suche, um loszulegen \u2014 oder w\xE4hle Startreihen unter Dashboard \u2192 Vault.",
+    fr: "Lancez une recherche \u2014 ou choisissez les rang\xE9es d'accueil dans Tableau de bord \u2192 Vault.",
+    it: "Cerca per iniziare \u2014 oppure scegli le righe iniziali in Dashboard \u2192 Vault.",
+    es: "Busca para empezar \u2014 o elige filas de inicio en Panel \u2192 Vault.",
+    nl: "Zoek om te beginnen \u2014 of kies startrijen via Dashboard \u2192 Vault.",
+    pt: "Pesquise para come\xE7ar \u2014 ou escolha as linhas iniciais em Painel \u2192 Vault.",
+    zh: "\u641C\u7D22\u4EE5\u5F00\u59CB \u2014 \u6216\u5728 \u63A7\u5236\u53F0 \u2192 Vault \u4E2D\u9009\u62E9\u9996\u9875\u884C\u3002"
+  },
+  setup: {
+    en: "Set up Vault first: a ThePornDB token and a source (Dashboard \u2192 Vault).",
+    de: "Richte Vault zuerst ein: ThePornDB-Token und eine Quelle (Dashboard \u2192 Vault).",
+    fr: "Configurez d'abord Vault : un jeton ThePornDB et une source (Tableau de bord \u2192 Vault).",
+    it: "Configura prima Vault: un token ThePornDB e una fonte (Dashboard \u2192 Vault).",
+    es: "Configura Vault primero: un token de ThePornDB y una fuente (Panel \u2192 Vault).",
+    nl: "Stel Vault eerst in: een ThePornDB-token en een bron (Dashboard \u2192 Vault).",
+    pt: "Configure o Vault primeiro: um token do ThePornDB e uma fonte (Painel \u2192 Vault).",
+    zh: "\u8BF7\u5148\u8BBE\u7F6E Vault\uFF1AThePornDB \u4EE4\u724C\u548C\u4E00\u4E2A\u6765\u6E90\uFF08\u63A7\u5236\u53F0 \u2192 Vault\uFF09\u3002"
+  }
+};
+var localeOf = (req) => req.context?.user?.locale ?? "en";
+var known = /* @__PURE__ */ new Map();
+function remember(id, k) {
+  known.delete(id);
+  known.set(id, k);
+  if (known.size > 5e3) known.delete(known.keys().next().value);
+}
+var joinMeta = (...parts) => parts.filter((p) => p !== null && p !== void 0 && p !== "").join(" \xB7 ") || void 0;
+function card(r) {
+  const id = String(r.id);
+  remember(id, { title: r.title, image: r.posterUrl ?? null, isVr: r.isVr === true });
+  if (r.kind === "performer") {
+    return { id, type: "person", title: r.title, image: r.posterUrl, shape: "portrait", open: `performer:${r.title}` };
+  }
+  const badges = [r.resolution, r.isVr ? "VR" : null].filter((b) => !!b);
+  return {
+    id,
+    type: "video",
+    title: r.title,
+    subtitle: joinMeta(r.studio, r.date ?? r.year),
+    meta: Array.isArray(r.performers) && r.performers.length ? r.performers.slice(0, 3).join(", ") : void 0,
+    image: r.posterUrl ?? r.backgroundUrl,
+    shape: "landscape",
+    duration: r.durationSeconds ?? void 0,
+    badges: badges.length ? badges : void 0,
+    playable: true
+  };
+}
+async function backends(locale) {
+  const s = await settings();
+  const sources = await listAdultStreamSources();
+  const list = [];
+  if (s.tpdb_token && sources.some((x) => x.source_type === "zilean")) list.push({ id: "catalog", label: uiText(TEXT.catalog, locale) });
+  if (s.apijav_enabled) list.push({ id: "apijav", label: uiText(TEXT.jav, locale) });
+  if (await rapidgatorAvailable().catch(() => false)) list.push({ id: "rapidgator", label: uiText(TEXT.files, locale) });
+  return list;
+}
+async function homeRails(locale, vrOnly) {
+  const picked = new Set((await settings()).home_rails);
+  const lists = manifest_default.catalogs.filter((c) => picked.has(c.id) && (!vrOnly || c.vr === true));
+  const rails = await mapLimit3(lists, 4, async (c) => {
+    const items = (await catalogRail(c.id).catch(() => [])).filter((r) => !vrOnly || r.isVr === true).slice(0, 40).map(card);
+    return items.length ? { id: c.id, title: uiText(c.names ?? c.name, locale), subtitle: c.groupNames ? uiText(c.groupNames, locale) : c.group, display: "rail", items } : null;
+  });
+  return rails.filter((r) => r !== null);
+}
+async function mapLimit3(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+async function spaceView(req) {
+  const locale = localeOf(req);
+  const t = (k) => uiText(TEXT[k], locale);
+  const extra = req.extra;
+  const filtersIn = extra.filters ?? {};
+  const path4 = req.id || "home";
+  const list = await backends(locale);
+  if (!list.length) return { view: { path: path4, sections: [], empty: t("setup") } };
+  const selected = list.find((b) => b.id === filtersIn.source)?.id ?? list[0].id;
+  const category = selected === "apijav" ? filtersIn.category ?? "" : "";
+  const vrOnly = filtersIn.vr === "1";
+  const filters = [];
+  if (list.length > 1) filters.push({ id: "source", display: "chips", value: selected, options: list.map((b) => ({ value: b.id, label: b.label })) });
+  filters.push({ id: "vr", display: "chips", value: vrOnly ? "1" : "", options: [{ value: "", label: t("all") }, { value: "1", label: t("vrOnly") }] });
+  const s = await settings();
+  const javOpts = { apiKey: s.apijav_key || void 0 };
+  if (selected === "apijav") {
+    const cats = await apijavCategories(s.apijav_url, javOpts).catch(() => []);
+    if (cats.length) {
+      filters.push({
+        id: "category",
+        label: t("category"),
+        display: "select",
+        value: category,
+        options: [{ value: "", label: t("all") }, ...cats.map((x) => ({ value: x.slug, label: x.name }))]
+      });
+    }
+  }
+  const q = (path4.startsWith("performer:") ? path4.slice("performer:".length) : extra.query ?? "").trim();
+  const page = Math.max(1, Number(extra.cursor) || 1);
+  let results = [];
+  let more = false;
+  if (selected === "apijav") {
+    results = await apijavSearch(s.apijav_url, { query: q, category, page, apiKey: s.apijav_key || void 0 }).catch(() => []);
+    more = results.length > 0;
+  } else if (!q && vrOnly && extra.submitted && selected === "catalog" && page === 1) {
+    results = await browseVr().catch(() => []);
+  } else if (q && page === 1) {
+    const queries = vrOnly && !/\bvr\b/i.test(q) ? [q, `${q} vr`] : [q];
+    const run = (sq) => selected === "catalog" ? searchCatalog(sq).catch(() => []) : selected === "rapidgator" ? rapidgatorSearch(sq).catch(() => []) : Promise.resolve([]);
+    const seen = /* @__PURE__ */ new Set();
+    results = (await Promise.all(queries.map(run))).flat().filter((r) => {
+      const id = String(r.id);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }
+  if (vrOnly) results = results.filter((r) => r.kind !== "performer" && r.isVr === true);
+  const header = path4.startsWith("performer:") ? { title: q } : void 0;
+  if (!q && !extra.submitted && page === 1 && selected === "catalog" && !path4.startsWith("performer:")) {
+    const rails = await homeRails(locale, vrOnly);
+    if (rails.length) return { view: { path: path4, filters, header, sections: rails } };
+  }
+  return {
+    view: {
+      path: path4,
+      filters,
+      header,
+      sections: results.length ? [{ id: "results", display: "grid", items: results.map(card), next: more ? String(page + 1) : void 0 }] : [],
+      empty: q || selected === "apijav" ? t("noResults") : t("start")
+    }
+  };
+}
+var BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+function vrOf(id, title, fileName) {
+  const k = known.get(id);
+  if (fileName) {
+    const f = detectProjection(fileName);
+    if (f.isVr || f.is3d) return { stereo: f.stereo, screenType: f.screenType, fov: f.fov };
+  }
+  const d = detectProjection(title || k?.title || "", { assumeVrWhenHinted: k?.isVr !== false });
+  if (d.isVr || d.is3d) return { stereo: d.stereo, screenType: d.screenType, fov: d.fov };
+  return k?.isVr ? { stereo: "sbs", screenType: "dome", fov: 180 } : null;
+}
+function fromPlayback(id, pb) {
+  if (!pb) return { status: "error", code: "stream_unavailable" };
+  if ("queued" in pb) return { status: "preparing", progress: pb.progress ?? null };
+  const k = known.get(id);
+  const duration = pb.durationTicks ? Math.round(pb.durationTicks / 1e7) : void 0;
+  return {
+    status: "ready",
+    media: "video",
+    stream: { url: pb.url, behaviorHints: { notWebReady: true, ...duration ? { durationSeconds: duration } : {} } },
+    title: pb.title || k?.title,
+    image: pb.posterUrl ?? k?.image ?? null,
+    duration,
+    streamInfo: pb.streamInfo ?? null,
+    vr: vrOf(id, pb.title, pb.fileName)
+  };
+}
+async function playApijav(id) {
+  const s = await settings();
+  if (!s.apijav_enabled) return { status: "error", code: "source_unreachable" };
+  const pb = await apijavResolve(s.apijav_url, id.slice("apijav:".length), { apiKey: s.apijav_key || void 0 }).catch(() => null);
+  if (!pb) return { status: "error", code: "stream_unavailable" };
+  const headers = { "User-Agent": BROWSER_UA, Referer: `${new URL(pb.url).origin}/` };
+  const reachable = await fetch(pb.url, { headers: { ...headers, Range: "bytes=0-1" }, signal: AbortSignal.timeout(7e3) }).then((r) => {
+    r.body?.cancel().catch(() => {
+    });
+    return r.ok;
+  }).catch(() => false);
+  if (!reachable) return { status: "error", code: "stream_unavailable" };
+  const k = known.get(id);
+  const stream = {
+    url: pb.url,
+    behaviorHints: { proxy: true, proxyHeaders: headers, ...pb.durationSeconds ? { durationSeconds: pb.durationSeconds } : {} },
+    qualities: pb.qualities.map((x) => ({ label: x.label, height: x.height, url: x.videoUrl })),
+    display: { title: pb.quality }
+  };
+  return {
+    status: "ready",
+    media: "video",
+    stream,
+    title: pb.title || k?.title,
+    image: pb.posterUrl ?? k?.image ?? null,
+    duration: pb.durationSeconds ?? void 0,
+    vr: vrOf(id, pb.title)
+  };
+}
+async function playItem(id, option) {
+  if (id.startsWith("apijav:")) return playApijav(id);
+  if (id.startsWith("rapidgator:")) return fromPlayback(id, await rapidgatorResolve(id).catch(() => null));
+  const isCatalog = id.startsWith("catalog:");
+  if (!isCatalog && !/^tpdb:(scenes|movies|jav):.+/.test(id)) return { status: "error", code: "not_found" };
+  const resolve = (hash) => isCatalog ? adultResolveCatalog(hash ?? id.slice("catalog:".length)).catch(() => null) : adultResolveItem(id, void 0, hash ? { hash } : void 0).catch(() => null);
+  if (option) return fromPlayback(id, await resolve(option));
+  const streams = isCatalog ? await adultListCatalogStreams(id.slice("catalog:".length)).catch(() => []) : await adultListStreams(id).catch(() => []);
+  if (streams.length === 0) return { status: "error", code: "stream_unavailable" };
+  if (streams.length === 1) return fromPlayback(id, await resolve(streams[0].infoHash));
+  return {
+    status: "choose",
+    title: known.get(id)?.title ?? "",
+    options: streams.map((s) => {
+      const vr = detectProjection(s.rawTitle, { assumeVrWhenHinted: true });
+      const gb = s.sizeBytes ? `${(s.sizeBytes / 1024 ** 3).toFixed(1)} GB` : void 0;
+      return { id: s.infoHash, label: s.rawTitle, detail: joinMeta(s.resolution, gb), badges: s.isVr || vr.isVr ? ["VR"] : vr.is3d ? ["3D"] : void 0 };
+    })
+  };
+}
+async function spacePlay(req) {
+  const option = typeof req.extra.option === "string" ? req.extra.option : void 0;
+  return { play: await playItem(req.id, option) };
+}
+async function streamsFor(id) {
+  const play = await playItem(id);
+  if (play.status === "ready") return [play.stream];
+  if (play.status === "choose" && play.options[0]) {
+    const first = await playItem(id, play.options[0].id);
+    return first.status === "ready" ? [first.stream] : [];
+  }
+  return [];
+}
+
+// src/resources.ts
+function resultMeta(r) {
+  return {
+    ...r,
+    id: r.id,
+    type: "video",
+    name: r.title,
+    poster: r.posterUrl,
+    background: r.backgroundUrl,
+    description: r.description,
+    releaseInfo: r.date ?? (r.year ? String(r.year) : null),
+    duration: r.durationSeconds,
+    posterShape: r.kind === "performer" ? "portrait" : "landscape"
+  };
+}
+var resources = {
+  space: (req) => req.type === "play" ? spacePlay(req) : spaceView(req),
+  catalog: async (req) => ({
+    metas: isCatalogRail(req.id) ? (await catalogRail(req.id)).map(resultMeta) : []
+  }),
+  stream: async ({ id }) => ({ streams: await streamsFor(id) }),
+  automation: async ({ id }) => {
+    if (id === "refresh-catalogs") {
+      const r = await refreshCatalogRails();
+      return { ok: true, message: `${r.rails} lists, ${r.cards} cached releases` };
+    }
+    throw new Error(`unknown automation "${id}"`);
+  }
+};
+
 // src/plugin.ts
+async function status() {
+  const [s, sources, debrid, stats] = await Promise.all([settings(), listAdultStreamSources(), getDebrid(), adultCatalogStats().catch(() => null)]);
+  const item = (label, value, tone) => ({ label, value, tone });
+  return {
+    ok: true,
+    items: [
+      item("ThePornDB", s.tpdb_token ? "Token set" : "No token \u2014 search and pictures need one", s.tpdb_token ? "success" : "warning"),
+      item("Debrid", debrid ? "Available" : "No add-on provides debrid (install Forge with a debrid account)", debrid ? "success" : "error"),
+      item("Sources", sources.length ? sources.map((x) => x.source_type).join(", ") : "Knaben only \u2014 add Zilean for the catalog", sources.length ? "success" : "info"),
+      item("Catalog", stats ? `${stats.total} releases \xB7 ${stats.matched} matched` : "Empty", stats?.total ? "success" : "info"),
+      item("Home rows", s.home_rails.length ? `${s.home_rails.length} shown` : "None picked", s.home_rails.length ? "success" : "info")
+    ]
+  };
+}
 var addon = defineAddon({
   manifest: manifest_default,
-  setup(host2) {
+  async setup(host2) {
     setVaultHost(host2);
-    const api = { catalog: catalog_exports, search: search_exports, apijav: apijav_exports, rapidgator: rapidgator_exports, playback: playback_exports, hls: hls_exports };
+    await migrateStorage();
     return {
-      api,
-      resources
+      resources,
+      actions: {
+        status: async () => status(),
+        "rails-list": async () => {
+          const shown = new Set((await settings()).home_rails);
+          return {
+            ok: true,
+            rows: manifest_default.catalogs.map((c) => ({ id: c.id, title: c.name, group: c.group ?? "", enabled: shown.has(c.id) }))
+          };
+        },
+        "rails-toggle": async ({ row }) => {
+          const r = row;
+          if (!r?.id || !manifest_default.catalogs.some((c) => c.id === r.id)) return { ok: false, message: "No list given" };
+          const shown = new Set((await settings()).home_rails);
+          const on = !shown.has(r.id);
+          if (on) shown.add(r.id);
+          else shown.delete(r.id);
+          await saveSettings({ home_rails: manifest_default.catalogs.map((c) => c.id).filter((id) => shown.has(id)) });
+          return { ok: true, message: on ? "Shown on the start page" : "Hidden" };
+        },
+        "refresh-catalogs": async () => {
+          const r = await refreshCatalogRails();
+          return { ok: true, message: `${r.rails} lists, ${r.cards} cached releases` };
+        }
+      }
     };
   }
 });

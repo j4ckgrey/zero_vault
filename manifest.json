@@ -2,59 +2,241 @@
   "id": "zero.vault",
   "name": "Vault",
   "version": "2.0.1",
-  "description": "Adult content for Zero Media — password-gated catalog + search (ThePornDB metadata; Zilean / Torznab / apiJAV / Rapidgator sourcing; on-demand debrid playback). Stays fully isolated from every normal library. Installing reveals the Adult library kind, the Adult sources section, and the ThePornDB credential.",
+  "description": "A locked space of its own — catalog and search with ThePornDB metadata (Zilean / Torznab / Knaben / apiJAV / Rapidgator sources), played through the debrid service.",
   "resources": [
     "catalog",
-    "search",
-    "meta",
-    "artwork",
     "stream",
-    "resolve",
+    "space",
     "automation"
   ],
   "types": [
-    "adult",
-    "person"
+    "video"
   ],
   "idPrefixes": [
+    "catalog:",
     "tpdb:",
-    "performer:"
+    "rapidgator:",
+    "apijav:"
   ],
   "provides": {
     "content": [
-      "adult"
-    ],
-    "metadata": [
-      "adult"
-    ],
-    "artwork": [
       "adult"
     ]
   },
   "zero": {
     "kind": "adult",
-    "sdk": 2,
+    "sdk": 3,
     "repo": "j4ckgrey/zero_vault",
     "branch": "main",
     "bundlePath": "dist/index.mjs",
     "bundleUrl": "https://raw.githubusercontent.com/j4ckgrey/zero_vault/release/dist/index.mjs",
-    "tabs": [],
-    "configKeys": [
+    "settings": [
       {
-        "key": "theporndb_api_key",
-        "label": "ThePornDB",
-        "category": "Adult Content",
-        "description": "API token from api.theporndb.net → API tokens. Powers adult metadata + search."
+        "key": "tpdb_token",
+        "type": "secret",
+        "label": "ThePornDB API token",
+        "description": "From api.theporndb.net → API tokens. Search, titles and pictures need it."
+      },
+      {
+        "key": "content_types",
+        "type": "list",
+        "label": "What ThePornDB search covers",
+        "description": "One per line: scenes, movies, jav.",
+        "default": [
+          "scenes",
+          "movies",
+          "jav"
+        ]
+      },
+      {
+        "key": "zilean_url",
+        "type": "url",
+        "label": "Zilean",
+        "description": "A Zilean instance (DMM hashlists) — the main source of releases for the catalog.",
+        "placeholder": "https://zilean.example.com"
+      },
+      {
+        "key": "torznab_url",
+        "type": "url",
+        "label": "Torznab (Prowlarr / Jackett)",
+        "description": "Your indexer with adult (XXX) trackers."
+      },
+      {
+        "key": "torznab_key",
+        "type": "secret",
+        "label": "Torznab API key"
+      },
+      {
+        "key": "torznab_categories",
+        "type": "text",
+        "label": "Torznab categories",
+        "default": "6000,6010,6020,6030,6040,6050,6060,6070,6080,6090"
+      },
+      {
+        "key": "apijav_enabled",
+        "type": "toggle",
+        "label": "apiJAV",
+        "description": "JAV catalog with its own player (direct HLS, no debrid).",
+        "default": false
+      },
+      {
+        "key": "apijav_url",
+        "type": "url",
+        "label": "apiJAV address",
+        "default": "https://server.apijav.com",
+        "showIf": {
+          "key": "apijav_enabled",
+          "equals": true
+        }
+      },
+      {
+        "key": "apijav_key",
+        "type": "secret",
+        "label": "apiJAV key (optional)",
+        "showIf": {
+          "key": "apijav_enabled",
+          "equals": true
+        }
+      },
+      {
+        "key": "cached_only",
+        "type": "toggle",
+        "label": "Cached on debrid only",
+        "description": "On: only releases the debrid has ready play. Off: picking one that isn't cached starts the download.",
+        "default": true
+      },
+      {
+        "key": "home_rails",
+        "type": "list",
+        "label": "Start-page rows",
+        "default": []
       }
     ],
-    "features": [
-      "adult"
+    "actions": [
+      {
+        "id": "status"
+      },
+      {
+        "id": "rails-list"
+      },
+      {
+        "id": "rails-toggle"
+      },
+      {
+        "id": "refresh-catalogs"
+      }
     ],
+    "ui": {
+      "tabs": [
+        {
+          "id": "vault",
+          "label": "Vault",
+          "icon": "lock",
+          "group": "content",
+          "description": "A locked space with its own catalog and search — ThePornDB metadata, played through debrid.",
+          "sections": [
+            {
+              "kind": "status",
+              "id": "status",
+              "title": "Status",
+              "source": "status"
+            },
+            {
+              "kind": "form",
+              "id": "metadata",
+              "title": "Metadata",
+              "fields": [
+                "tpdb_token",
+                "content_types"
+              ]
+            },
+            {
+              "kind": "form",
+              "id": "sources",
+              "title": "Sources",
+              "description": "Knaben is always searched; add the ones you have.",
+              "fields": [
+                "zilean_url",
+                "torznab_url",
+                "torznab_key",
+                "torznab_categories",
+                "apijav_enabled",
+                "apijav_url",
+                "apijav_key"
+              ]
+            },
+            {
+              "kind": "form",
+              "id": "playback",
+              "title": "Playback",
+              "fields": [
+                "cached_only"
+              ]
+            },
+            {
+              "kind": "table",
+              "id": "rails",
+              "title": "Start-page rows",
+              "description": "Lists shown when the space opens (releases cached on the debrid only).",
+              "rows": "rails-list",
+              "columns": [
+                {
+                  "key": "title",
+                  "label": "List"
+                },
+                {
+                  "key": "group",
+                  "label": "Group"
+                },
+                {
+                  "key": "enabled",
+                  "label": "Shown",
+                  "format": "bool"
+                }
+              ],
+              "rowButtons": [
+                {
+                  "action": "rails-toggle",
+                  "label": "Show / hide"
+                }
+              ]
+            },
+            {
+              "kind": "buttons",
+              "id": "tools",
+              "title": "Tools",
+              "buttons": [
+                {
+                  "action": "refresh-catalogs",
+                  "label": "Refresh lists now"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "spaces": [
+      {
+        "id": "library",
+        "name": "Vault",
+        "icon": "lock",
+        "layout": "video",
+        "locked": true,
+        "render": "addon",
+        "proxyImages": true
+      }
+    ],
+    "services": {
+      "uses": [
+        "debrid"
+      ]
+    },
     "automations": [
       {
         "id": "refresh-catalogs",
         "name": "Refresh adult catalogs",
-        "description": "Rebuilds the adult catalog lists (New in VR, VR studios, New releases, studios) — only releases cached on TorBox — and pulls new VR studio releases. Turn lists on in Catalogs → Vault.",
+        "description": "Rebuilds Vault's lists (New in VR, VR studios, New releases, studios — releases cached on the debrid only) and pulls new VR studio releases.",
         "intervalMinutes": 240
       }
     ]
@@ -62,7 +244,7 @@
   "catalogs": [
     {
       "id": "vr-new",
-      "type": "adult",
+      "type": "video",
       "name": "New in VR",
       "names": {
         "en": "New in VR",
@@ -84,11 +266,12 @@
         "nl": "VR",
         "pt": "VR",
         "zh": "VR"
-      }
+      },
+      "vr": true
     },
     {
       "id": "studio:MilfVR",
-      "type": "adult",
+      "type": "video",
       "name": "MilfVR",
       "group": "vr",
       "groupNames": {
@@ -100,11 +283,12 @@
         "nl": "VR",
         "pt": "VR",
         "zh": "VR"
-      }
+      },
+      "vr": true
     },
     {
       "id": "studio:WankzVR",
-      "type": "adult",
+      "type": "video",
       "name": "WankzVR",
       "group": "vr",
       "groupNames": {
@@ -116,11 +300,12 @@
         "nl": "VR",
         "pt": "VR",
         "zh": "VR"
-      }
+      },
+      "vr": true
     },
     {
       "id": "studio:VRBangers",
-      "type": "adult",
+      "type": "video",
       "name": "VRBangers",
       "group": "vr",
       "groupNames": {
@@ -132,11 +317,12 @@
         "nl": "VR",
         "pt": "VR",
         "zh": "VR"
-      }
+      },
+      "vr": true
     },
     {
       "id": "studio:SexLikeReal",
-      "type": "adult",
+      "type": "video",
       "name": "SexLikeReal",
       "group": "vr",
       "groupNames": {
@@ -148,11 +334,12 @@
         "nl": "VR",
         "pt": "VR",
         "zh": "VR"
-      }
+      },
+      "vr": true
     },
     {
       "id": "studio:BaDoinkVR",
-      "type": "adult",
+      "type": "video",
       "name": "BaDoinkVR",
       "group": "vr",
       "groupNames": {
@@ -164,11 +351,12 @@
         "nl": "VR",
         "pt": "VR",
         "zh": "VR"
-      }
+      },
+      "vr": true
     },
     {
       "id": "studio:CzechVR",
-      "type": "adult",
+      "type": "video",
       "name": "CzechVR",
       "group": "vr",
       "groupNames": {
@@ -180,11 +368,12 @@
         "nl": "VR",
         "pt": "VR",
         "zh": "VR"
-      }
+      },
+      "vr": true
     },
     {
       "id": "new",
-      "type": "adult",
+      "type": "video",
       "name": "New releases",
       "names": {
         "en": "New releases",
@@ -210,7 +399,7 @@
     },
     {
       "id": "studio:Brazzers",
-      "type": "adult",
+      "type": "video",
       "name": "Brazzers",
       "group": "studios",
       "groupNames": {
@@ -226,7 +415,7 @@
     },
     {
       "id": "studio:Vixen",
-      "type": "adult",
+      "type": "video",
       "name": "Vixen",
       "group": "studios",
       "groupNames": {
@@ -242,7 +431,7 @@
     },
     {
       "id": "studio:Blacked",
-      "type": "adult",
+      "type": "video",
       "name": "Blacked",
       "group": "studios",
       "groupNames": {
@@ -258,7 +447,7 @@
     },
     {
       "id": "studio:Tushy",
-      "type": "adult",
+      "type": "video",
       "name": "Tushy",
       "group": "studios",
       "groupNames": {
@@ -274,7 +463,7 @@
     },
     {
       "id": "studio:Reality Kings",
-      "type": "adult",
+      "type": "video",
       "name": "Reality Kings",
       "group": "studios",
       "groupNames": {
@@ -290,7 +479,7 @@
     },
     {
       "id": "studio:Naughty America",
-      "type": "adult",
+      "type": "video",
       "name": "Naughty America",
       "group": "studios",
       "groupNames": {

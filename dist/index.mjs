@@ -10935,7 +10935,7 @@ async function rapidgatorResolve(id) {
 var manifest_default = {
   id: "zero.vault",
   name: "Vault",
-  version: "2.0.2",
+  version: "2.0.3",
   description: "A locked space of its own \u2014 catalog and search with ThePornDB metadata (Zilean / Torznab / Knaben / apiJAV / Rapidgator sources), played through the debrid service.",
   resources: [
     "catalog",
@@ -11197,20 +11197,10 @@ var manifest_default = {
                 {
                   key: "enabled",
                   label: "Shown",
-                  format: "bool"
+                  format: "bool",
+                  action: "rails-toggle"
                 }
               ],
-              rowButtons: [
-                {
-                  action: "rails-toggle",
-                  label: "Show / hide"
-                }
-              ]
-            },
-            {
-              kind: "buttons",
-              id: "tools",
-              title: "Tools",
               buttons: [
                 {
                   action: "refresh-catalogs",

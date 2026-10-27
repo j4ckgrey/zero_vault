@@ -246,7 +246,8 @@ async function settings() {
     zilean_url: str("zilean_url"),
     torznab_url: str("torznab_url"),
     torznab_key: str("torznab_key"),
-    torznab_categories: str("torznab_categories"),
+    // A list since 2.0.2; before that one comma-separated string.
+    torznab_categories: Array.isArray(s.torznab_categories) ? list("torznab_categories") : str("torznab_categories").split(/[\s,]+/),
     apijav_enabled: s.apijav_enabled === true,
     apijav_url: str("apijav_url") || "https://server.apijav.com",
     apijav_key: str("apijav_key"),
@@ -426,7 +427,7 @@ async function listAdultStreamSources() {
   if (s.apijav_enabled) out.push(row("apijav", "apijav", s.apijav_url, s.apijav_key || null));
   if (s.zilean_url) out.push(row("zilean", "zilean", s.zilean_url, null));
   if (s.torznab_url) {
-    const categories = s.torznab_categories.split(/[\s,]+/).map((c) => Number(c)).filter((n) => Number.isFinite(n) && n > 0);
+    const categories = s.torznab_categories.map((c) => Number(c)).filter((n) => Number.isFinite(n) && n > 0);
     out.push(row("torznab", "torznab", s.torznab_url, s.torznab_key || null, categories.length ? { categories } : {}));
   }
   return out;
@@ -10934,7 +10935,7 @@ async function rapidgatorResolve(id) {
 var manifest_default = {
   id: "zero.vault",
   name: "Vault",
-  version: "2.0.1",
+  version: "2.0.2",
   description: "A locked space of its own \u2014 catalog and search with ThePornDB metadata (Zilean / Torznab / Knaben / apiJAV / Rapidgator sources), played through the debrid service.",
   resources: [
     "catalog",
@@ -10974,11 +10975,25 @@ var manifest_default = {
         key: "content_types",
         type: "list",
         label: "What ThePornDB search covers",
-        description: "One per line: scenes, movies, jav.",
+        description: "None picked searches scenes.",
         default: [
           "scenes",
           "movies",
           "jav"
+        ],
+        options: [
+          {
+            value: "scenes",
+            label: "Scenes"
+          },
+          {
+            value: "movies",
+            label: "Movies"
+          },
+          {
+            value: "jav",
+            label: "JAV"
+          }
         ]
       },
       {
@@ -11001,9 +11016,67 @@ var manifest_default = {
       },
       {
         key: "torznab_categories",
-        type: "text",
+        type: "list",
         label: "Torznab categories",
-        default: "6000,6010,6020,6030,6040,6050,6060,6070,6080,6090"
+        default: [
+          "6000",
+          "6010",
+          "6020",
+          "6030",
+          "6040",
+          "6050",
+          "6060",
+          "6070",
+          "6080",
+          "6090"
+        ],
+        options: [
+          {
+            value: "6000",
+            label: "All XXX (6000)"
+          },
+          {
+            value: "6010",
+            label: "DVD (6010)"
+          },
+          {
+            value: "6020",
+            label: "WMV (6020)"
+          },
+          {
+            value: "6030",
+            label: "XviD (6030)"
+          },
+          {
+            value: "6040",
+            label: "x264 (6040)"
+          },
+          {
+            value: "6045",
+            label: "UHD (6045)"
+          },
+          {
+            value: "6050",
+            label: "Packs (6050)"
+          },
+          {
+            value: "6060",
+            label: "Image sets (6060)"
+          },
+          {
+            value: "6070",
+            label: "Other (6070)"
+          },
+          {
+            value: "6080",
+            label: "SD (6080)"
+          },
+          {
+            value: "6090",
+            label: "WEB-DL (6090)"
+          }
+        ],
+        description: "Newznab XXX categories your indexer is searched in."
       },
       {
         key: "apijav_enabled",

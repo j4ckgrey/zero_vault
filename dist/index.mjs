@@ -9012,14 +9012,23 @@ async function syncNativeStreams(opts) {
       `${title} \u2014 ${screened.length} streams in ${tookSec}s \xB7 sources: ${sourcesStr}${cachedPart}${assumedPart}`
     );
   } else {
+    const otherEpisodes = parsed.length - seGated.length;
+    const byPrefs = seGated.length - filtered.length;
+    const dropped = [
+      otherEpisodes > 0 ? `${otherEpisodes} other episode${otherEpisodes === 1 ? "" : "s"}` : null,
+      byPrefs > 0 ? `${byPrefs} filtered by your stream prefs` : null
+    ].filter(Boolean).join(", ");
+    const found = `${rawCandidates.length} found (${sourcesStr})${dropped ? `, ${dropped}` : ""}`;
     let why;
     if (rawCandidates.length === 0) {
       why = `no candidates from ${sources.length} source${sources.length === 1 ? "" : "s"} (${sourcesStr})`;
+    } else if (filtered.length === 0) {
+      why = `${found}, none left to check`;
     } else if (prefs.excludeUncached && available.length === 0) {
       const names = accounts.filter((a) => a.resolver.verifiesCache !== false).map((a) => prettyProvider(a.row.provider)).join(" / ") || "debrid";
-      why = `${rawCandidates.length} found, none cached on ${names}; cached-only is on`;
+      why = `${found}, ${filtered.length} checked, none cached on ${names}; cached-only is on`;
     } else {
-      why = `${rawCandidates.length} found, all filtered out by your stream prefs`;
+      why = `${found}, ${available.length} available, none left after the usenet check`;
     }
     logger2.warn("streams", `${title} \u2014 0 streams (${why}) in ${tookSec}s`);
   }
@@ -11592,7 +11601,7 @@ async function spaceView(req) {
   const category = selected === "apijav" ? filtersIn.category ?? "" : "";
   const vrOnly = filtersIn.vr === "1";
   const filters = [];
-  if (list.length > 1) filters.push({ id: "source", display: "chips", value: selected, options: list.map((b) => ({ value: b.id, label: b.label })) });
+  if (list.length > 1) filters.push({ id: "source", display: "nav", value: selected, options: list.map((b) => ({ value: b.id, label: b.label })) });
   filters.push({ id: "vr", display: "chips", value: vrOnly ? "1" : "", options: [{ value: "", label: t("all") }, { value: "1", label: t("vrOnly") }] });
   const s = await settings();
   const javOpts = { apiKey: s.apijav_key || void 0 };

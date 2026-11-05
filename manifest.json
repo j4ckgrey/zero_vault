@@ -1,7 +1,7 @@
 {
   "id": "zero.vault",
   "name": "Vault",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "A locked space of its own — catalog and search with ThePornDB metadata (Zilean / Torznab / Knaben / apiJAV / Rapidgator sources), played through the debrid service.",
   "resources": [
     "catalog",

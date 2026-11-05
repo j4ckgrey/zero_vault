@@ -9386,8 +9386,28 @@ init_log();
 // src/parse.ts
 init_src2();
 function parseResolutionLabel(rawTitle) {
+  const vr = vrResolutionLabel(rawTitle);
+  if (vr) return vr;
   const r = parseReleaseName(rawTitle).resolution;
   return r && r !== "unknown" ? r : null;
+}
+function kLabel(width) {
+  if (width >= 7600) return "8K";
+  if (width >= 6900) return "7K";
+  if (width >= 5600) return "6K";
+  if (width >= 4900) return "5K";
+  if (width >= 3800) return "4K";
+  return null;
+}
+function vrResolutionLabel(rawTitle) {
+  const t = rawTitle.replace(/_/g, " ");
+  const wh = /(?:^|[^0-9])([2-9][0-9]{3})\s?[x×_]\s?([1-9][0-9]{3})(?![0-9])/i.exec(t);
+  if (wh) return kLabel(Math.max(Number(wh[1]), Number(wh[2])));
+  const k = /(?:^|[^a-z0-9])([4-8])k(?![a-z0-9])/i.exec(t);
+  if (k) return `${k[1]}K`;
+  const p = /(?:^|[^0-9])([2-9][0-9]{3})p(?![a-z0-9])/i.exec(t);
+  if (p && Number(p[1]) >= 2880) return kLabel(Number(p[1]));
+  return null;
 }
 var VR_TOKEN = /\bvr\b/i;
 var VR_STUDIO_SUFFIX = /[a-z]{2,}vr\b/i;
@@ -10721,6 +10741,7 @@ function parseReleaseName2(rawName) {
   const resM = name.match(RES_RE);
   let resolution = resM ? resM[1].toLowerCase() : null;
   if (resolution === "4k" || resolution === "uhd") resolution = "2160p";
+  resolution = vrResolutionLabel(name) ?? resolution;
   const isVr = VR_RE.test(name);
   const dateM = name.match(DATE_RE);
   let date = null;
@@ -10944,7 +10965,7 @@ async function rapidgatorResolve(id) {
 var manifest_default = {
   id: "zero.vault",
   name: "Vault",
-  version: "2.0.3",
+  version: "2.0.4",
   description: "A locked space of its own \u2014 catalog and search with ThePornDB metadata (Zilean / Torznab / Knaben / apiJAV / Rapidgator sources), played through the debrid service.",
   resources: [
     "catalog",
@@ -11599,10 +11620,11 @@ async function spaceView(req) {
   if (!list.length) return { view: { path: path4, sections: [], empty: t("setup") } };
   const selected = list.find((b) => b.id === filtersIn.source)?.id ?? list[0].id;
   const category = selected === "apijav" ? filtersIn.category ?? "" : "";
-  const vrOnly = filtersIn.vr === "1";
+  const vrDevice = req.context?.client?.vr !== false;
+  const vrOnly = vrDevice && filtersIn.vr === "1";
   const filters = [];
   if (list.length > 1) filters.push({ id: "source", display: "nav", value: selected, options: list.map((b) => ({ value: b.id, label: b.label })) });
-  filters.push({ id: "vr", display: "chips", value: vrOnly ? "1" : "", options: [{ value: "", label: t("all") }, { value: "1", label: t("vrOnly") }] });
+  if (vrDevice) filters.push({ id: "vr", display: "chips", value: vrOnly ? "1" : "", options: [{ value: "", label: t("all") }, { value: "1", label: t("vrOnly") }] });
   const s = await settings();
   const javOpts = { apiKey: s.apijav_key || void 0 };
   if (selected === "apijav") {
@@ -11725,7 +11747,9 @@ async function playItem(id, option) {
     options: streams.map((s) => {
       const vr = detectProjection(s.rawTitle, { assumeVrWhenHinted: true });
       const gb = s.sizeBytes ? `${(s.sizeBytes / 1024 ** 3).toFixed(1)} GB` : void 0;
-      return { id: s.infoHash, label: s.rawTitle, detail: joinMeta(s.resolution, gb), badges: s.isVr || vr.isVr ? ["VR"] : vr.is3d ? ["3D"] : void 0 };
+      const kind = s.isVr || vr.isVr ? "VR" : vr.is3d ? "3D" : null;
+      const badges = [s.resolution, kind].filter((b) => !!b);
+      return { id: s.infoHash, label: s.rawTitle, detail: joinMeta(s.resolution, gb), badges: badges.length ? badges : void 0 };
     })
   };
 }
